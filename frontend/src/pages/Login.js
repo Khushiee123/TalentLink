@@ -1,78 +1,61 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import API from "../services/api";
 
 export default function Login() {
-  const [data, setData] = useState({ username: "", password: "" });
+  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     try {
-      const res = await API.post("/login/", data);
+      const res = await API.post("/login/", formData);
       localStorage.setItem("access", res.data.access);
       localStorage.setItem("refresh", res.data.refresh);
-      navigate("/home");
-    } catch (error) {
-    // This will now show the EXACT error from your views.py
-    const errorMsg = error.response?.data?.error || "Connection Error";
-    alert("Login failed: " + errorMsg);
-    console.error("Full Error Object:", error);
-  }
+      navigate("/profile"); // This is your dashboard tab
+    } catch (err) {
+      console.error("Login Error:", err.response?.data);
+      setError("Invalid username or password. Please try again.");
+    }
   };
 
   return (
-    <>
+    <div className="login-container">
       <style>{`
-        body {
-          font-family: 'Poppins', sans-serif;
-          background: linear-gradient(135deg, #1abc9c, #2ecc71);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          margin: 0;
-        }
-        form {
-          background: rgba(255,255,255,0.1);
-          padding: 40px;
-          border-radius: 15px;
-          backdrop-filter: blur(10px);
-          box-shadow: 0 0 30px rgba(0,0,0,0.2);
-        }
-        input, button {
-          display: block;
-          width: 100%;
-          margin: 15px 0;
-          padding: 10px;
-          border-radius: 10px;
-          border: 1px solid #ddd;
-        }
-        button {
-          background: #16a085;
-          color: white;
-          border: none;
-          cursor: pointer;
-        }
+        .login-container { height: 100vh; display: flex; justify-content: center; align-items: center; background-color: #1abc9c; font-family: 'Segoe UI', sans-serif; }
+        .login-card { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; color: white; }
+        .input-group { margin-bottom: 20px; }
+        .input-group input { width: 100%; padding: 12px 15px; border-radius: 10px; border: none; outline: none; font-size: 1rem; box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #16a085; color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .login-btn:hover { background: #148f77; }
+        .error-msg { background: #e74c3c; color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
+        .footer-text { margin-top: 20px; font-size: 0.9rem; }
+        .footer-text a { color: white; font-weight: bold; text-decoration: none; }
       `}</style>
 
-      <form onSubmit={handleSubmit}>
-        <h1 style={{ color: "white", textAlign: "center" }}>Talent link</h1>
-        <h2 style={{ color: "white", textAlign: "center" }}>Login</h2>
-        <input
-          placeholder="Username"
-          onChange={(e) => setData({ ...data, username: e.target.value })}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          onChange={(e) => setData({ ...data, password: e.target.value })}
-        />
-        <button type="submit">Login</button>
-        <p style={{ color: "white", textAlign: "center" }}>
-          Don’t have an account? <a href="/register" style={{color: '#fff', fontWeight: 'bold'}}>Register</a>
+      <div className="login-card">
+        <h1>Talent link</h1>
+        <h2>Login</h2>
+        {error && <div className="error-msg">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <input type="text" name="username" placeholder="Username" onChange={handleChange} required />
+          </div>
+          <div className="input-group">
+            <input type="password" name="password" placeholder="Password" onChange={handleChange} required />
+          </div>
+          <button type="submit" className="login-btn">Login</button>
+        </form>
+        <p className="footer-text">
+          Don't have an account? <Link to="/register">Register</Link>
         </p>
-      </form>
-    </>
+      </div>
+    </div>
   );
 }

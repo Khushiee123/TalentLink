@@ -65,6 +65,7 @@ class RegisterView(APIView):
         # If username/email is taken, this returns a clean JSON error (no HTML)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    
 class LoginView(APIView):
     permission_classes = [AllowAny] # Ensure anyone can try to log in
 
@@ -107,6 +108,7 @@ class ProjectListCreateView(generics.ListCreateAPIView):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+
     
     # Task 3: Filter by budget/duration, search by title/description
     filterset_fields = ['budget', 'duration']
@@ -114,7 +116,8 @@ class ProjectListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         # Automatically set the current user as the client who posted the project
-        serializer.save(client=self.request.user)
+        serializer.save(freelancer=self.request.user)
+
 
 class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Project.objects.all()

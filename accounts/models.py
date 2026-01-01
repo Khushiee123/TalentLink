@@ -1,17 +1,30 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
 
 class Project(models.Model):
-    client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=200)
     description = models.TextField()
     budget = models.DecimalField(max_digits=10, decimal_places=2)
-    duration = models.CharField(max_length=100) # e.g., "1 month", "Fixed"
+    duration = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return self.title
+    # Logic: The Freelancer is the "Owner/Creator"
+    freelancer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='created_projects'
+    )
+    
+    # Logic: The Client is the "Viewer/Recipient" (can be null if not yet assigned)
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='hired_projects'
+    )
 
 
 class Proposal(models.Model):

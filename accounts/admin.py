@@ -27,10 +27,19 @@ class ProfileAdmin(admin.ModelAdmin):
 # --- CUSTOM PROJECT ADMIN (Task 2 & 3) ---
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    # Projects show title and the client who posted it
-    list_display = ('title', 'client', 'budget', 'duration') 
+    # Now 'freelancer' is a valid attribute
+    list_display = ('title', 'get_creator', 'get_client', 'budget', 'duration')
     list_filter = ('budget', 'duration')
     search_fields = ('title', 'description')
+
+    def get_creator(self, obj):
+        return obj.freelancer.username if obj.freelancer else "No Creator"
+    
+    def get_client(self, obj):
+        return obj.client.username if obj.client else "Available to All"
+
+    get_creator.short_description = 'Posted By (Freelancer)'
+    get_client.short_description = 'Viewed By (Client)'
 
 # --- CUSTOM PROPOSAL ADMIN ---
 @admin.register(Proposal)

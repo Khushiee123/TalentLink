@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
@@ -6,219 +6,174 @@ export default function Home() {
   const [profile, setProfile] = useState(null);
   const [projects, setProjects] = useState([]);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [selectedAvatar, setSelectedAvatar] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
-  const [formData, setFormData] = useState({ title: "", description: "", budget: "", duration: "" });
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newProject, setNewProject] = useState({ title: "", description: "", budget: "", duration: "" });
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const profileRes = await API.get("/profile/");
-        setProfile(profileRes.data);
-        const projectRes = await API.get("/projects/");
-        setProjects(projectRes.data);
-        
-        const savedAvatar = localStorage.getItem(`avatar_${profileRes.data.username}`);
-        if (savedAvatar) setSelectedAvatar(savedAvatar);
-      } catch (err) {
-        console.error("Fetch Error:", err);
-        navigate("/");
-      }
-    };
-    fetchData();
+  const fetchData = useCallback(async () => {
+    try {
+      const profileRes = await API.get("/profile/");
+      setProfile(profileRes.data);
+      const projectRes = await API.get("/projects/");
+      setProjects(projectRes.data);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      navigate("/");
+    }
   }, [navigate]);
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedAvatar(reader.result);
-        localStorage.setItem(`avatar_${profile.username}`, reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const handleOpenModal = (project = null) => {
-    if (project) {
-      setEditingProject(project.id);
-      setFormData({ title: project.title, description: project.description, budget: project.budget, duration: project.duration });
-    } else {
-      setEditingProject(null);
-      setFormData({ title: "", description: "", budget: "", duration: "" });
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
+  const handleAddProject = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem("access") || localStorage.getItem("token");
+    if (!token) { navigate("/"); return; }
+
     try {
-      if (editingProject) {
-        await API.put(`/projects/${editingProject}/`, formData);
-      } else {
-        await API.post("/projects/", formData);
+      const response = await fetch("http://127.0.0.1:8000/api/projects/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(newProject),
+      });
+      if (response.ok) {
+        setIsAddModalOpen(false);
+        setNewProject({ title: "", description: "", budget: "", duration: "" });
+        fetchData();
       }
-      setIsModalOpen(false);
-      const res = await API.get("/projects/");
-      setProjects(res.data);
-    } catch (err) {
-      alert("Error saving project.");
-    }
+    } catch (error) { console.error(error); }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure?")) {
-      try {
-        await API.delete(`/projects/${id}/`);
-        setProjects(projects.filter(p => p.id !== id));
-      } catch (err) {
-        alert("Delete failed.");
-      }
-    }
-  };
+  if (!profile) return <div style={styles.loading}><h2>Loading Talent Link...</h2></div>;
 
-  if (!profile) return <div className="loading-screen"><h2>Loading Talent Link...</h2></div>;
-
-  const avatarUrl = selectedAvatar || `https://ui-avatars.com/api/?name=${profile.username}&background=1abc9c&color=fff&size=128`;
+  const isClient = profile.role?.toLowerCase() === "client";
 
   return (
-    <div className="dashboard-root">
+    <div className="app-container">
       <style>{`
-        .dashboard-root { min-height: 100vh; background: #f8fafc; font-family: 'Inter', sans-serif; color: #1e293b; }
-        .loading-screen { height: 100vh; display: flex; justify-content: center; align-items: center; background: #1abc9c; color: white; font-family: 'Poppins'; }
+        .app-container { min-height: 100vh; background: #f8fafc; font-family: 'Poppins', sans-serif; padding: 20px; }
+        .content-limit { max-width: 1100px; margin: 0 auto; }
         
-        /* Navbar Styling */
-        .navbar { position: sticky; top: 0; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 2.5rem; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .nav-brand { font-size: 1.5rem; font-weight: 800; color: #1abc9c; letter-spacing: -0.5px; }
-        .nav-links { display: flex; gap: 2rem; }
-        .nav-btn { background: none; border: none; font-weight: 600; color: #64748b; cursor: pointer; padding: 1rem 0; transition: 0.2s; position: relative; }
-        .nav-btn.active { color: #1abc9c; }
-        .nav-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: #1abc9c; border-radius: 10px; }
-        .nav-user { display: flex; align-items: center; gap: 12px; }
-        .nav-avatar-mini { width: 38px; height: 38px; border-radius: 50%; border: 2px solid #e2e8f0; }
+        /* New Global Branding Styles */
+        .global-header { text-align: center; margin-bottom: 30px; padding: 20px 0; border-bottom: 1px solid #e2e8f0; }
+        .brand-title { font-size: 2rem; font-weight: 800; color: #1e293b; margin: 0; letter-spacing: -1px; }
+        .brand-accent { color: #1abc9c; }
+        .brand-tagline { font-size: 0.9rem; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-top: 5px; font-weight: 600; }
 
-        /* Content Container */
-        .content-container { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.5rem; }
-        .welcome-header { margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-end; }
-        .welcome-header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 0.25rem; color: #0f172a; }
-        .welcome-header p { color: #64748b; font-size: 1.1rem; }
-
-        /* Project Cards */
-        .btn-create { background: #1abc9c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(26, 188, 156, 0.2); }
-        .btn-create:hover { background: #16a085; transform: translateY(-1px); }
-        
-        .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
-        .project-card { background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0; transition: 0.3s; }
-        .project-card:hover { border-color: #1abc9c; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
-        .card-price { color: #10b981; font-weight: 800; font-size: 1.25rem; }
-        .card-actions { display: flex; gap: 10px; margin-top: 1.5rem; border-top: 1px solid #f1f5f9; paddingTop: 1rem; }
-        .btn-edit { background: #fef9c3; color: #a16207; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.875rem; }
-        .btn-delete { background: #fee2e2; color: #b91c1c; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.875rem; }
-
-        /* Profile Section */
-        .profile-card { background: white; max-width: 800px; margin: 0 auto; padding: 3rem; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .profile-header { text-align: center; margin-bottom: 2rem; }
-        .avatar-wrapper { position: relative; width: 140px; height: 140px; margin: 0 auto 1.5rem; }
-        .avatar-img { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #f1f5f9; object-fit: cover; }
-        .upload-badge { position: absolute; bottom: 5px; right: 5px; background: #1abc9c; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; cursor: pointer; }
-        
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 2.5rem; border-radius: 20px; width: 100%; max-width: 450px; }
+        .banner { background: linear-gradient(135deg, #1abc9c, #16a085); color: white; padding: 50px; border-radius: 24px; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 25px rgba(26, 188, 156, 0.2); }
+        .stat-card { background: #fff; padding: 30px; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.3s ease; }
+        .stat-card:hover { transform: translateY(-8px); border-color: #1abc9c; box-shadow: 0 15px 30px rgba(0,0,0,0.08); }
+        .nav-back { cursor: pointer; color: #1abc9c; font-weight: 600; margin-bottom: 20px; display: inline-block; }
+        .btn-action { background: #1abc9c; color: white; border: none; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: 0.3s; }
       `}</style>
 
-      {/* NEW NAVBAR */}
-      <nav className="navbar">
-        <div className="nav-brand">TalentLink</div>
-        <div className="nav-links">
-          <button className={`nav-btn ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => setActiveTab("dashboard")}>Dashboard</button>
-          <button className={`nav-btn ${activeTab === "profile" ? "active" : ""}`} onClick={() => setActiveTab("profile")}>My Profile</button>
-        </div>
-        <div className="nav-user">
-          <span style={{fontWeight: '600', color: '#475569'}}>{profile.username}</span>
-          <img src={avatarUrl} className="nav-avatar-mini" alt="user" />
-        </div>
-      </nav>
+      <div className="content-limit">
+        {/* --- GLOBAL HIGHLIGHTED TITLE --- */}
+        <header className="global-header">
+          <h1 className="brand-title">
+            Talent<span className="brand-accent">Link</span>
+          </h1>
+          <div className="brand-tagline">— A Freelancing Platform —</div>
+        </header>
 
-      <main className="content-container">
-        {activeTab === "dashboard" ? (
-          <>
-            <div className="welcome-header">
-              <div>
-                <h1>Project Dashboard</h1>
-                <p>Track and manage your ongoing work with ease.</p>
-              </div>
-              <button className="btn-create" onClick={() => handleOpenModal()}>+ New Project</button>
+        {/* Navigation Breadcrumb */}
+        {activeTab !== "dashboard" && (
+          <div className="nav-back" onClick={() => setActiveTab("dashboard")}>
+            ← Back to Dashboard
+          </div>
+        )}
+
+        {/* DASHBOARD VIEW */}
+        {activeTab === "dashboard" && (
+          <div>
+            <div className="banner">
+              <h2 style={{ fontSize: "2.2rem", marginBottom: "10px" }}>Welcome, {profile.username}!</h2>
+              <p style={{ opacity: 0.9, fontSize: "1.1rem" }}>Your workspace is ready.</p>
             </div>
 
-            <div className="project-grid">
-              {projects.map(p => (
-                <div key={p.id} className="project-card">
-                  <div className="card-header">
-                    <h3 style={{fontWeight: '700', fontSize: '1.2rem'}}>{p.title}</h3>
-                    <span className="card-price">${p.budget}</span>
-                  </div>
-                  <p style={{color:'#64748b', fontSize:'0.95rem', lineHeight: '1.5'}}>{p.description}</p>
-                  <div className="card-actions">
-                    <button className="btn-edit" onClick={() => handleOpenModal(p)}>Edit</button>
-                    <button className="btn-delete" onClick={() => handleDelete(p.id)}>Delete</button>
+            <div style={styles.statsGrid}>
+              <div className="stat-card" onClick={() => setActiveTab("projects")}>
+                <div style={styles.statIcon}>💼</div>
+                <h3 style={styles.statTitle}>Projects</h3>
+                <p style={styles.statSub}>Manage listings</p>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab("proposals")}>
+                <div style={styles.statIcon}>📩</div>
+                <h3 style={styles.statTitle}>Proposals</h3>
+                <p style={styles.statSub}>Review bids</p>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab("contracts")}>
+                <div style={styles.statIcon}>📄</div>
+                <h3 style={styles.statTitle}>Contracts</h3>
+                <p style={styles.statSub}>Active agreements</p>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab("profile")}>
+                <div style={styles.statIcon}>👤</div>
+                <h3 style={styles.statTitle}>Profile</h3>
+                <p style={styles.statSub}>Account settings</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PROJECTS VIEW */}
+        {activeTab === "projects" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+              <h2>{isClient ? "Marketplace" : "My Projects"}</h2>
+              {!isClient && <button className="btn-action" onClick={() => setIsAddModalOpen(true)}>+ Post Project</button>}
+            </div>
+            <div style={styles.cardGrid}>
+              {projects.map((p) => (
+                <div key={p.id} style={styles.polishedCard}>
+                  <div style={styles.userBadge}>👤 {p.freelancer_username}</div>
+                  <h3 style={{ margin: "15px 0" }}>{p.title}</h3>
+                  <p style={{ color: "#64748b", fontSize: "14px" }}>{p.description}</p>
+                  <div style={styles.cardFooter}>
+                    <span>Budget: <strong>${p.budget}</strong></span>
+                    <span><strong>{p.duration}</strong></span>
                   </div>
                 </div>
               ))}
             </div>
-          </>
-        ) : (
-          <div className="profile-card">
-            <div className="profile-header">
-              <div className="avatar-wrapper">
-                <img src={avatarUrl} className="avatar-img" alt="profile" />
-                <label htmlFor="avatar-upload" className="upload-badge">📷</label>
-                <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} style={{display: 'none'}} />
-              </div>
-              <h2 style={{fontSize: '1.8rem', fontWeight: '800'}}>{profile.username}</h2>
-              <span style={{background: '#ccfbf1', color: '#14b8a6', padding: '4px 12px', borderRadius: '20px', fontSize: '0.875rem', fontWeight: '700'}}>{profile.role}</span>
-            </div>
-            
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem'}}>
-              <div>
-                <label style={{color: '#94a3b8', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase'}}>Email Address</label>
-                <p style={{fontWeight: '600', marginTop: '4px'}}>{profile.email}</p>
-              </div>
-              <div>
-                <label style={{color: '#94a3b8', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase'}}>Platform Role</label>
-                <p style={{fontWeight: '600', marginTop: '4px'}}>Verified {profile.role}</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => { localStorage.clear(); navigate("/"); }} 
-              style={{marginTop: '3rem', width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #fee2e2', color: '#ef4444', background: 'none', fontWeight: '700', cursor: 'pointer'}}
-            >
-              Sign Out of Account
-            </button>
           </div>
         )}
-      </main>
 
-      {/* CRUD Modal remains functional but with updated styling */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2 style={{fontWeight: '800', marginBottom: '1.5rem'}}>{editingProject ? "Edit Project" : "Create New Project"}</h2>
-            <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-              <input style={inputStyle} placeholder="Project Title" value={formData.title} onChange={(e)=>setFormData({...formData, title:e.target.value})} required />
-              <textarea style={{...inputStyle, height: '100px'}} placeholder="Brief Description" value={formData.description} onChange={(e)=>setFormData({...formData, description:e.target.value})} required />
-              <div style={{display: 'flex', gap: '1rem'}}>
-                <input style={inputStyle} type="number" placeholder="Budget ($)" value={formData.budget} onChange={(e)=>setFormData({...formData, budget:e.target.value})} required />
-                <input style={inputStyle} placeholder="Duration (e.g. 2 weeks)" value={formData.duration} onChange={(e)=>setFormData({...formData, duration:e.target.value})} required />
-              </div>
-              <div style={{display:'flex', gap:'12px', marginTop: '1rem'}}>
-                <button type="submit" className="btn-create" style={{flex: 2}}>Save Project</button>
-                <button type="button" onClick={()=>setIsModalOpen(false)} style={{flex: 1, background: '#f1f5f9', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer'}}>Cancel</button>
-              </div>
+        {/* PROFILE VIEW */}
+        {activeTab === "profile" && (
+          <div style={{ textAlign: "center", background: "#fff", padding: "60px", borderRadius: "24px", border: "1px solid #e2e8f0" }}>
+            <img 
+              src={`https://ui-avatars.com/api/?name=${profile.username}&background=1abc9c&color=fff&size=128`} 
+              alt="Profile" 
+              style={{ width: "120px", borderRadius: "50%", marginBottom: "20px", border: "4px solid #f0fdfa" }} 
+            />
+            <h2 style={{ fontSize: "2rem" }}>{profile.username}</h2>
+            <p style={{ color: "#64748b" }}>{profile.email} • <strong>{profile.role}</strong></p>
+            <button className="btn-action" style={{ background: "#ef4444", marginTop: "30px" }} onClick={() => { localStorage.clear(); navigate("/"); }}>Logout</button>
+          </div>
+        )}
+
+        {/* PLACEHOLDERS */}
+        {(activeTab === "proposals" || activeTab === "contracts") && (
+          <div style={styles.placeholder}>
+            <h2>{activeTab.toUpperCase()} Module</h2>
+            <p>Feature coming soon.</p>
+          </div>
+        )}
+      </div>
+
+      {/* MODAL */}
+      {isAddModalOpen && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <h2 style={{ marginBottom: "20px" }}>New Project</h2>
+            <form onSubmit={handleAddProject}>
+              <input placeholder="Title" style={styles.input} required onChange={(e) => setNewProject({...newProject, title: e.target.value})} />
+              <textarea placeholder="Description" style={{...styles.input, height: "100px"}} required onChange={(e) => setNewProject({...newProject, description: e.target.value})} />
+              <button type="submit" className="btn-action" style={{ width: "100%" }}>Publish</button>
+              <button type="button" style={{ width: "100%", background: "none", border: "none", marginTop: "10px", color: "#64748b", cursor: "pointer" }} onClick={() => setIsAddModalOpen(false)}>Cancel</button>
             </form>
           </div>
         </div>
@@ -227,11 +182,18 @@ export default function Home() {
   );
 }
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px',
-  borderRadius: '8px',
-  border: '1px solid #e2e8f0',
-  fontSize: '1rem',
-  outline: 'none'
+const styles = {
+  loading: { height: "100vh", display: "flex", justifyContent: "center", alignItems: "center" },
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "25px" },
+  statIcon: { fontSize: "40px", marginBottom: "15px", background: "#f0fdfa", width: "70px", height: "70px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" },
+  statTitle: { margin: "0 0 5px 0", fontSize: "1.2rem", color: "#1e293b" },
+  statSub: { margin: 0, fontSize: "0.9rem", color: "#94a3b8" },
+  cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "25px" },
+  polishedCard: { background: "#fff", padding: "25px", borderRadius: "20px", border: "1px solid #e2e8f0" },
+  userBadge: { background: "#f1f5f9", padding: "4px 10px", borderRadius: "8px", fontSize: "12px", display: "inline-block" },
+  cardFooter: { display: "flex", justifyContent: "space-between", marginTop: "15px", paddingTop: "15px", borderTop: "1px dashed #e2e8f0" },
+  placeholder: { textAlign: "center", padding: "80px 20px", background: "#fff", borderRadius: "24px", border: "1px dashed #cbd5e1" },
+  modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" },
+  modalContent: { background: "#fff", padding: "40px", borderRadius: "24px", width: "90%", maxWidth: "450px" },
+  input: { width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "15px", boxSizing: "border-box" }
 };

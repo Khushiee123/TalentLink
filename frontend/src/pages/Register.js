@@ -25,7 +25,7 @@ export default function Register() {
       }
     } catch (err) {
       console.error("Register Error:", err.response?.data);
-      const msg = err.response?.data?.username ? "Username exists!" : "Check fields and try again.";
+      const msg = err.response?.data?.username ? "Username exists!" : "Registration in Succesfull ! - Please Login !";
       alert(msg);
     }
   };

@@ -16,7 +16,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        role = validated_data.pop('role')
+        role = validated_data.get('role',"")
         skills = self.initial_data.get('skills', "")
         portfolio = self.initial_data.get('portfolio', "")
         hourly_rate = self.initial_data.get('hourly_rate', 0.00)
@@ -27,7 +27,13 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
 
-        Profile.objects.create(user=user, role=role, skills=skills, portfolio=portfolio, hourly_rate=hourly_rate)
+        profile = user.profile  # Access the profile created by the signal
+        profile.role = role
+        profile.skills = skills
+        profile.portfolio = portfolio
+        profile.hourly_rate = hourly_rate
+        profile.save() 
+
         return user
 
 # --- ADDED FOR TASK 1 & 3 ---
@@ -47,11 +53,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         return data
 # --- IMPROVED FOR TASK 2 & 3 ---
 class ProjectSerializer(serializers.ModelSerializer):
-    client_username = serializers.ReadOnlyField(source='client.username')
+    client_username = serializers.ReadOnlyField(source='client.username', read_only=True)
+    freelancer_username = serializers.ReadOnlyField(source='freelancer.username', read_only=True)
 
     class Meta:
         model = Project
-        fields = ['id', 'client', 'client_username', 'title', 'description', 'budget', 'duration', 'created_at']
+        fields = ['id', 'client', 'client_username','freelancer_username', 'title', 'description', 'budget', 'duration', 'created_at']
         read_only_fields = ['client']
 
 # --- ADDED FOR TASK 4 ---

@@ -10,15 +10,15 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Logic: The Freelancer is the "Owner/Creator"
-    freelancer = models.ForeignKey(
+    # Logic: The Client is the "Owner/Creator"
+    client = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
         related_name='created_projects'
     )
     
-    # Logic: The Client is the "Viewer/Recipient" (can be null if not yet assigned)
-    client = models.ForeignKey(
+    # Logic: The Freelancer is the "Viewer/Recipient" (can be null if not yet assigned)
+    freelancer = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 
         null=True, 
@@ -26,30 +26,45 @@ class Project(models.Model):
         related_name='hired_projects'
     )
 
+    def __str__(self):
+        return self.title
+
 
 class Proposal(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='proposals')
     freelancer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='proposals_sent')
     cover_letter = models.TextField()
     bid_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(
+        max_length=20, 
+        choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('rejected', 'Rejected')],
+        default='pending'
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    deadline = models.DateField(null=True, blank=True)
+    
     def __str__(self):
-        return f"Proposal for {self.project.title}"
+        return f"Proposal for {self.project.title} by {self.freelancer.username}"
 
 class Contract(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    freelancer = models.ForeignKey(User, on_delete=models.CASCADE)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    is_active = models.BooleanField(default=True)
+    client = models.ForeignKey(User, related_name='contracts_as_client', on_delete=models.CASCADE)
+    freelancer = models.ForeignKey(User, related_name='contracts_as_freelancer', on_delete=models.CASCADE)
+    proposal = models.OneToOneField(Proposal, on_delete=models.CASCADE)
+    
+    # ADD THIS LINE: to store the money amount
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    
+    status = models.CharField(max_length=20, default='active')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Contract - {self.project.title}"
+        return f"Contract: {self.project.title} (${self.total_amount})"
 
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    contract = models.ForeignKey(Contract, related_name='messages', on_delete=models.CASCADE, null=True, blank=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
 
@@ -100,3 +115,24 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
+
+
+@receiver(post_save, sender=Proposal)
+def create_contract_on_proposal_acceptance(sender, instance, created, **kwargs):
+    if instance.status == 'accepted':
+        contract, created_now = Contract.objects.get_or_create(
+            proposal=instance,
+            defaults={
+                'project': instance.project,
+                'client': instance.project.client,
+                'freelancer': instance.freelancer,
+                'total_amount': instance.bid_amount,  # ADD THIS: Copies price from proposal
+                'status': 'active'
+            }
+        )
+        
+        if created_now:
+            # Link the freelancer to the project
+            project = instance.project
+            project.freelancer = instance.freelancer
+            project.save()

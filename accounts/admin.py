@@ -5,8 +5,6 @@ from django.contrib.auth.models import User
 from .models import Project, Proposal, Contract, Message, Review, Skill, Profile
 
 
-
-admin.site.register(Contract)
 admin.site.register(Message)
 admin.site.register(Review)
 admin.site.register(Skill)
@@ -45,7 +43,7 @@ class ProjectAdmin(admin.ModelAdmin):
 @admin.register(Proposal)
 class ProposalAdmin(admin.ModelAdmin):
     # Proposals show the project they belong to and the freelancer bidding
-    list_display = ('project', 'freelancer', 'bid_amount', 'submitted_at') 
+    list_display = ('project', 'freelancer', 'bid_amount', 'status','submitted_at') 
     # The comma at the end of ('submitted_at',) is required for a single-item tuple
     list_filter = ('submitted_at',) 
     search_fields = ('cover_letter',)
@@ -59,4 +57,11 @@ try:
 except admin.sites.NotRegistered:
     pass
 
-admin.site.register(User, CustomUserAdmin)
+@admin.register(Contract)
+class ContractAdmin(admin.ModelAdmin):
+    list_display = ('project', 'client', 'freelancer', 'status', 'created_at')
+    
+try:
+    admin.site.register(Contract, ContractAdmin)
+except admin.sites.AlreadyRegistered:
+    pass

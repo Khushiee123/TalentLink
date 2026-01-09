@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Profile, Project, Proposal
+from .models import Profile, Project, Proposal, Contract, Message
 
 class RegisterSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(
@@ -63,9 +63,38 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 # --- ADDED FOR TASK 4 ---
 class ProposalSerializer(serializers.ModelSerializer):
+    client_username = serializers.ReadOnlyField(source='client.username')
+    project_title = serializers.CharField(source='project.title', read_only=True)
     freelancer_username = serializers.ReadOnlyField(source='freelancer.username')
 
     class Meta:
         model = Proposal
-        fields = ['id', 'project', 'freelancer', 'freelancer_username', 'cover_letter', 'bid_amount', 'created_at']
+        # Change 'created_at' to 'submitted_at' to match your Model
+        fields = [
+            'id', 'project', 'project_title', 'freelancer', 
+            'client_username', 'cover_letter', 'bid_amount', 
+            'submitted_at', 'status','freelancer_username','deadline'
+        ]
         read_only_fields = ['freelancer']
+
+class ContractSerializer(serializers.ModelSerializer):
+    # These helper fields help the frontend show names instead of just IDs
+    project_title = serializers.ReadOnlyField(source='project.title')
+    client_username = serializers.ReadOnlyField(source='client.username')
+    freelancer_username = serializers.ReadOnlyField(source='freelancer.username')
+
+    class Meta:
+        model = Contract
+        fields = [
+            'id', 'project', 'project_title', 'client', 'client_username', 
+            'freelancer', 'freelancer_username', 'proposal', 'status', 'created_at', 'total_amount'
+        ]
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.ReadOnlyField(source='sender.username')
+
+    class Meta:
+        model = Message
+        fields = ['id', 'contract', 'sender', 'sender_username', 'content', 'timestamp']
+        # Add this line to stop the "sender is required" error
+        read_only_fields = ['sender']

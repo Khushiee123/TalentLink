@@ -104,20 +104,31 @@ class LoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 class ProjectListCreateView(generics.ListCreateAPIView):
-    queryset = Project.objects.all().order_by('-created_at')
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-
-    
-    # Task 3: Filter by budget/duration, search by title/description
     filterset_fields = ['budget', 'duration']
     search_fields = ['title', 'description']
 
-    def perform_create(self, serializer):
-        # Automatically set the current user as the client who posted the project
-        serializer.save(client=self.request.user)
+    def get_queryset(self):
+        user = self.request.user
+        try:
+            role = user.profile.role
+        except Profile.DoesNotExist:
+            role = 'freelancer' # Default fallback
 
+        if role == 'client':
+            # Clients see ONLY the projects they created
+            # This ensures they can see their assigned projects in the filter
+            return Project.objects.filter(client=user).order_by('-created_at')
+        
+        # Freelancers see open projects OR projects they are hired for
+        return Project.objects.filter(
+            Q(freelancer__isnull=True) | Q(freelancer=user)
+        ).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(client=self.request.user)
 
 class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Project.objects.all()
@@ -203,9 +214,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = serializer.save()
         
-        # Check if the status was just changed to 'accepted'
-        if instance.status == 'accepted':
-            # Create Contract if it doesn't exist
+        # Match the frontend status 'Accepted' or 'accepted'
+        if instance.status.lower() == 'accepted':
+            # 1. Create Contract
             Contract.objects.get_or_create(
                 proposal=instance,
                 defaults={
@@ -215,7 +226,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     'status': 'active'
                 }
             )
-            # Update Project to link the freelancer
+            # 2. Link freelancer to project immediately
             project = instance.project
             project.freelancer = instance.freelancer
             project.save()

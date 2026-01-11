@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Profile, Project, Proposal, Contract, Message
+from .models import Profile, Project, Proposal, Contract, Message , Skill
 
 class RegisterSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(
@@ -55,10 +55,15 @@ class ProfileSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     client_username = serializers.ReadOnlyField(source='client.username', read_only=True)
     freelancer_username = serializers.ReadOnlyField(source='freelancer.username', read_only=True)
+    skills = serializers.SlugRelatedField(
+        many=True,
+        slug_field='name',
+        queryset=Skill.objects.all() # Make sure to import your Skill model
+    )
 
     class Meta:
         model = Project
-        fields = ['id', 'client', 'client_username','freelancer_username', 'title', 'description', 'budget', 'duration', 'created_at']
+        fields = ['id', 'client', 'client_username','freelancer_username', 'title', 'description', 'budget', 'duration', 'created_at','skills']
         read_only_fields = ['client']
 
 # --- ADDED FOR TASK 4 ---
@@ -98,3 +103,8 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = ['id', 'contract', 'sender', 'sender_username', 'content', 'timestamp']
         # Add this line to stop the "sender is required" error
         read_only_fields = ['sender']
+
+class SkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['name']

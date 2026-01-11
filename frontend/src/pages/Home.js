@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
-// 1. Import the CSS (Move your Part 2 code into this file)
+// 1. Import the CSS
 import "./HomeStyles.css"; 
 
-// 2. Import the Tab Components (We will create these next)
+// 2. Import the Tab Components
 import ProfileTab from "./Profile_Tab";
 import DashboardTab from "./tabs/DashboardTab";
 import ProjectsTab from "./tabs/ProjectsTab";
@@ -20,9 +20,12 @@ export default function Home() {
   const [contracts, setContracts] = useState([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   
+  // NEW: Sidebar Collapse State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
   const navigate = useNavigate();
 
-  // --- DATA FETCHING (The Brain) ---
+  // --- DATA FETCHING ---
   const fetchData = useCallback(async () => {
     try {
       const [profileRes, projectRes, propRes, contRes] = await Promise.all([
@@ -54,12 +57,23 @@ export default function Home() {
   const isClient = profile.role?.toLowerCase() === "client";
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isSidebarCollapsed ? "side-collapsed" : ""}`}>
       {/* --- SIDEBAR --- */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        {/* Move the button outside brand-box for persistent visibility */}
+        <button 
+          className="sidebar-toggle-btn" 
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isSidebarCollapsed ? "→" : "←"}
+        </button>
+
         <div className="brand-box">
           <div className="logo-icon">TL</div>
-          <div className="logo-text">Talent<span>Link</span></div>
+          {!isSidebarCollapsed && (
+            <div className="logo-text">Talent<span>Link</span></div>
+          )}
         </div>
         
         <nav className="side-nav">
@@ -73,15 +87,18 @@ export default function Home() {
               key={tab.id}
               className={activeTab === tab.id ? 'active' : ''} 
               onClick={() => setActiveTab(tab.id)}
+              title={isSidebarCollapsed ? tab.label : ""} 
             >
-              <span className="icon">{tab.icon}</span> {tab.label}
+              <span className="icon">{tab.icon}</span> 
+              {!isSidebarCollapsed && <span className="label-text">{tab.label}</span>}
             </button>
           ))}
         </nav>
 
         <div className="sidebar-footer">
           <button className="logout-card" onClick={() => {localStorage.clear(); navigate("/");}}>
-            Logout <span>→</span>
+            <span className="icon">🚪</span>
+            {!isSidebarCollapsed && <span>Logout →</span>}
           </button>
         </div>
       </aside>

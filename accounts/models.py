@@ -2,6 +2,12 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
 
+class Skill(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
+
 class Project(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -9,6 +15,7 @@ class Project(models.Model):
     duration = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    skills = models.ManyToManyField(Skill, related_name="projects")
 
     # Logic: The Client is the "Owner/Creator"
     client = models.ForeignKey(
@@ -80,11 +87,7 @@ class Review(models.Model):
     def __str__(self):
         return f"Review by {self.reviewer}"
 
-class Skill(models.Model):
-    name = models.CharField(max_length=100)
 
-    def __str__(self):
-        return self.name
 
 class Profile(models.Model):
     ROLE_CHOICES = (

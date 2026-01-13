@@ -8,12 +8,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Project, Profile, Proposal, Contract, Message
-from .serializers import ProjectSerializer, ProfileSerializer , ProposalSerializer, ContractSerializer, MessageSerializer
+from .models import Project, Profile, Proposal, Contract, Message , Review 
+from .serializers import ProjectSerializer, ProfileSerializer , ProposalSerializer, ContractSerializer, MessageSerializer , ReviewSerializer
 from .serializers import RegisterSerializer
-from rest_framework import viewsets, status 
+from rest_framework import viewsets, status , permissions
 from rest_framework.decorators import action
 from django.db.models import Q
+from .models import Notification
+from .serializers import NotificationSerializer
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -201,7 +203,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        # Automatically set the current logged-in user as the freelancer
+        # This will trigger the 'created' signal in models.py 
+        # (Notifying the Client)
         serializer.save(freelancer=self.request.user)
     
     def get_queryset(self):
@@ -210,32 +213,79 @@ class ProposalViewSet(viewsets.ModelViewSet):
         sent = Proposal.objects.filter(freelancer=user)
         return (received | sent).distinct().order_by('-submitted_at')
 
-    # ADD THIS: This triggers on any PATCH/PUT request from React
     def perform_update(self, serializer):
-        instance = serializer.save()
-        
-        # Match the frontend status 'Accepted' or 'accepted'
-        if instance.status.lower() == 'accepted':
-            # 1. Create Contract
-            Contract.objects.get_or_create(
-                proposal=instance,
-                defaults={
-                    'project': instance.project,
-                    'client': instance.project.client,
-                    'freelancer': instance.freelancer,
-                    'status': 'active'
-                }
-            )
-            # 2. Link freelancer to project immediately
-            project = instance.project
-            project.freelancer = instance.freelancer
-            project.save()
+        # We simply save. The Signal in models.py handles 
+        # Contract creation, Project linking, and Notifications.
+        serializer.save()
 
     @action(detail=True, methods=['post'])
     def accept_proposal(self, request, pk=None):
-        # ... (Your existing code here is fine, but perform_update is now your safety net)
+        """
+        Custom action to accept a proposal.
+        Triggered when the Client clicks the 'Hire' button.
+        """
         proposal = self.get_object()
+        
+        # Security check: Only the client who owns the project can hire
+        if proposal.project.client != request.user:
+            return Response({"error": "You do not have permission to accept this proposal."}, 
+                            status=status.HTTP_403_FORBIDDEN)
+
+        # Update the status
         proposal.status = 'accepted'
-        proposal.save() # This will trigger the perform_update logic above
-        return Response({"message": "Freelancer hired!"})
+        proposal.save()  # <--- This save() triggers the notification signal in models.py
+
+        return Response({
+            "status": "success",
+            "message": f"Proposal accepted! {proposal.freelancer.username} has been hired."
+        }, status=status.HTTP_200_OK)
     
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        # Only show notifications for the logged-in user
+        return Notification.objects.filter(recipient=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        """Marks all notifications for the current user as read."""
+        self.get_queryset().update(is_read=True)
+        return Response({'status': 'all notifications marked as read'}, status=status.HTTP_200_OK)
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Shows reviews where the user is either the one giving or receiving
+        user = self.request.user
+        return Review.objects.filter(
+            Q(reviewer=user) | Q(reviewed_user=user)
+        ).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        # 1. Frontend sends 'contract' (the ID) in the JSON body
+        contract_id = self.request.data.get('contract')
+        
+        if not contract_id:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"contract": "Contract ID is required to post a review."})
+
+        try:
+            # 2. Fetch the contract to link it to the review
+            contract = Contract.objects.get(id=contract_id)
+            
+            # 3. The freelancer is found via the contract's proposal
+            freelancer = contract.proposal.freelancer
+
+            # 4. Save the review with all necessary links
+            serializer.save(
+                reviewer=self.request.user,
+                reviewed_user=freelancer,
+                contract=contract
+            )
+        except Contract.DoesNotExist:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"contract": "The specified contract does not exist."})

@@ -11,7 +11,7 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-main); overflow: hidden; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-main); overflow: auto; }
 
   .app-shell { display: flex; height: 100vh; width: 100vw; }
 
@@ -33,7 +33,14 @@
   .logout-card:hover { background: #ffe4e6; transform: translateX(5px); }
 
   /* MAIN CONTENT */
-  .main-content { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+  .main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Keeps the shell fixed to the screen */
+  width: 100%;
+  overflow: hidden; /* Prevents the whole app from scrolling double */
+}
   .main-header { padding: 1.5rem 3rem; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
   .header-left h1 { font-size: 1.6rem; font-weight: 800; }
   .breadcrumb { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
@@ -44,7 +51,204 @@
   .user-name-text .name { font-weight: 700; font-size: 0.9rem; }
   .user-name-text .role { font-size: 0.75rem; color: var(--text-muted); }
 
-  .scroll-content { flex: 1; padding: 2.5rem 3rem; overflow-y: auto; }
+  .scroll-content {
+  flex: 1;
+  overflow-y: auto; /* This enables the scrollbar for the landing page/tabs */
+  padding: 20px; 
+  background-color: #f8fafc;
+}
+
+/*Landing page CSS */
+.talentlink-landing {
+  min-height: 100%;
+  overflow-y: visible;
+  display: block;
+}
+
+  /* 1. The Bell Button Container */
+.notification-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bell-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #636e72;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+}
+
+.bell-button:hover {
+  background-color: #f1f2f6;
+  color: #1dbf73;
+}
+
+/* 2. The Red Notification Badge */
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: #ff4757;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+/* 3. The Dropdown Panel & Animation */
+@keyframes slideDownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #edf2f7;
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDownIn 0.3s ease-out forwards;
+}
+
+/* 4. Dropdown Header */
+.dropdown-header {
+  padding: 15px;
+  border-bottom: 1px solid #f1f2f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.dropdown-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #2d3436;
+}
+
+.mark-read-btn {
+  background: none;
+  border: none;
+  color: #1dbf73;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 5. Notification Items */
+.notification-list {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f8f9fa;
+  transition: background 0.2s;
+}
+
+.notification-item:hover {
+  background-color: #f9f9f9;
+}
+
+.notification-item.unread {
+  background-color: #f0fff4; /* Very light green for unread */
+  border-left: 3px solid #1dbf73;
+}
+
+.notification-item p {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: #2d3436;
+}
+
+.notification-item small {
+  color: #b2bec3;
+  font-size: 11px;
+}
+
+.nt-icon {
+  margin-right: 12px;
+  padding: 8px;
+  border-radius: 8px;
+}
+.nt-icon.msg { background: #e0f2fe; color: #0284c7; }
+.nt-icon.prop { background: #fef3c7; color: #d97706; }
+.nt-icon.cont { background: #dcfce7; color: #16a34a; }
+.nt-content-row { display: flex; align-items: flex-start; }
+.nt-text-box p { margin: 0; font-size: 0.9rem; font-weight: 500; }
+.nt-text-box small { color: #94a3b8; }
+
+/* Notification Item Styling */
+.notification-item.unread {
+  background-color: #f0fff4; /* Light TalentLink Green */
+  border-left: 4px solid #1dbf73;
+}
+
+.notification-item.read {
+  background-color: #ffffff;
+  opacity: 0.8;
+}
+
+.nt-icon.msg { color: #3b82f6; }   /* Blue for messages */
+.nt-icon.prop { color: #f59e0b; }  /* Amber for proposals */
+.nt-icon.cont { color: #10b981; }  /* Green for contracts */
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  border: 2px solid white;
+}
+
+/* 6. Empty State Styling */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #b2bec3;
+}
+
+.empty-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  font-weight: 600;
+  color: #636e72;
+  margin: 0;
+}
 
   /* DASHBOARD UI */
   .welcome-banner { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 24px; padding: 3rem; color: white; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; position: relative; overflow: hidden; }
@@ -1169,3 +1373,8 @@
 .sidebar.collapsed .label-text {
   display: none;
 }
+
+
+
+
+

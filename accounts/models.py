@@ -1,6 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
 
 class Skill(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -78,15 +82,6 @@ class Message(models.Model):
     def __str__(self):
         return f"Message from {self.sender}"
 
-class Review(models.Model):
-    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_given')
-    reviewed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_received')
-    rating = models.IntegerField()
-    comment = models.TextField()
-
-    def __str__(self):
-        return f"Review by {self.reviewer}"
-
 
 
 class Profile(models.Model):
@@ -106,9 +101,7 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.role}"
     
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from .models import Profile
+
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -120,22 +113,125 @@ def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
 
 
+# 2. Proposal & Contract Notifications
 @receiver(post_save, sender=Proposal)
-def create_contract_on_proposal_acceptance(sender, instance, created, **kwargs):
-    if instance.status == 'accepted':
+def handle_proposal_actions(sender, instance, created, **kwargs):
+    # This print helps you debug in your terminal
+    print("\n" + "="*30)
+    print("DEBUG: SIGNAL EXECUTING!")
+    print(f"DEBUG: Status is -> {instance.status}")
+    print("="*30 + "\n") 
+
+    # 1. ACTION: Notify Client about a NEW Proposal
+    if created:
+        Notification.objects.create(
+            recipient=instance.project.client,
+            sender=instance.freelancer,
+            n_type='PROPOSAL',
+            message=f"New proposal for '{instance.project.title}' from {instance.freelancer.username}."
+        )
+
+    # 2. ACTION: Handle Acceptance
+    # 2. ACTION: Handle Acceptance
+    if instance.status.lower() == 'accepted':
         contract, created_now = Contract.objects.get_or_create(
             proposal=instance,
             defaults={
                 'project': instance.project,
                 'client': instance.project.client,
                 'freelancer': instance.freelancer,
-                'total_amount': instance.bid_amount,  # ADD THIS: Copies price from proposal
+                'total_amount': instance.bid_amount,
                 'status': 'active'
             }
         )
         
+        # Move notifications OUTSIDE of 'if created_now' for testing
+        # Use get_or_create for the notification itself to avoid duplicates
+        Notification.objects.get_or_create(
+            recipient=instance.freelancer,
+            n_type='SYSTEM',
+            message=f"Your proposal for '{instance.project.title}' was accepted!",
+            # Defaults ensures we don't create it twice if we refresh
+            defaults={'sender': instance.project.client}
+        )
+        print(f"DEBUG: Notification sent to {instance.freelancer.username}")
+        
+        # We only want to create these notifications if the contract was JUST created
         if created_now:
-            # Link the freelancer to the project
+            # A. Update Project to show assigned freelancer
             project = instance.project
             project.freelancer = instance.freelancer
             project.save()
+
+            # B. Notify Freelancer (The person being hired)
+            n = Notification.objects.create(
+                recipient=instance.freelancer,
+                sender=instance.project.client,
+                n_type='SYSTEM',
+                message=f"Your proposal for '{instance.project.title}' was accepted! Contract is now active."
+            )
+            print(f"NOTIFICATION CREATED for ID: {n.recipient.id}")
+
+            # C. Notify Client (The person who clicked Hire - YOU)
+            Notification.objects.create(
+                recipient=instance.project.client,
+                sender=None,
+                n_type='SYSTEM',
+                message=f"Success! You have hired {instance.freelancer.username} for '{instance.project.title}'."
+            )
+
+# 3. Message Notifications
+@receiver(post_save, sender=Message)
+def handle_message_notification(sender, instance, created, **kwargs):
+
+    if created:
+        # We need to find the recipient. If it's a contract chat, 
+        # the recipient is whoever DID NOT send the message.
+        recipient = None
+        if instance.contract:
+            if instance.sender == instance.contract.client:
+                recipient = instance.contract.freelancer
+            else:
+                recipient = instance.contract.client
+        
+        if recipient:
+            Notification.objects.create(
+                recipient=recipient,
+                sender=instance.sender,
+                n_type='MESSAGE',
+                message=f"You have a new message from {instance.sender.username}."
+            )
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('PROPOSAL', 'Proposal Update'),
+        ('MESSAGE', 'New Message'),
+        ('SYSTEM', 'System Alert'),
+    )
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    n_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='SYSTEM')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Notification for {self.recipient.username}: {self.message[:20]}"
+    
+
+class Review(models.Model):
+    # Links the review to a specific project for verification
+    contract = models.OneToOneField(Contract, on_delete=models.CASCADE, related_name='review')
+    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_given')
+    reviewed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_received')
+    
+    rating = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)]) # 1-5 Stars
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.rating} stars for {self.reviewed_user.username}" 

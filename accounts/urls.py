@@ -4,12 +4,14 @@ from django.urls import path, include
 from .views import (RegisterView, LoginView, ProfileView , 
                     ProjectListCreateView, ProjectDetailView,
                     ProposalCreateView, ProjectProposalsView ,
-                    ProposalViewSet, ContractViewSet, MessageViewSet )
+                    ProposalViewSet, ContractViewSet, MessageViewSet, NotificationViewSet, ReviewViewSet)
 
 router = DefaultRouter()
 router.register(r'proposals', ProposalViewSet, basename='proposal')
 router.register(r'contracts', ContractViewSet, basename='contract')
 router.register(r'messages', MessageViewSet, basename='message')
+router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'reviews', ReviewViewSet, basename='review')
 
 urlpatterns = [
 

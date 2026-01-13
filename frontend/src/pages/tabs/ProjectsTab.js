@@ -7,18 +7,24 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   
+  // State for Freelancer Application
+  const [applyingProject, setApplyingProject] = useState(null);
+  const [applyData, setApplyData] = useState({ 
+    bid_amount: "", 
+    cover_letter: "",
+    deadline: "" // New Deadline Field
+  });
+
   const [formData, setFormData] = useState({
     title: "", description: "", budget: "", duration: "", skills: [] 
   });
 
-  // 1. Unified Navbar Logic - Including Assigned Projects for Clients
   const uniqueSkills = useMemo(() => {
     const skillsSet = new Set(["All"]);
-    if (isClient) skillsSet.add("Assigned Projects"); // Client specific
-    if (!isClient) skillsSet.add("Available for work"); // Freelancer specific
+    if (isClient) skillsSet.add("Assigned Projects");
+    if (!isClient) skillsSet.add("Available for work");
     
     projects.forEach((p) => {
-      // Show skills from projects that aren't contracted yet
       if (!p.freelancer && p.skills) {
         p.skills.forEach(skill => skillsSet.add(skill));
       }
@@ -26,23 +32,30 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
     return Array.from(skillsSet);
   }, [projects, isClient]);
 
-  // 2. Updated Filter Logic to handle "Assigned" visibility
-const filteredProjects = projects.filter(p => {
+  const filteredProjects = projects.filter(p => {
   const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
   
-  // Logic: A project is "Assigned" if:
-  // 1. It has a freelancer ID (Backend link)
-  // 2. OR there is an 'Accepted' proposal for this project ID (Frontend link)
+  // 1. Check if the project is already assigned (Freelancer hired)
   const hasAcceptedProp = proposals.some(prop => prop.project === p.id && prop.status.toLowerCase() === "accepted");
   const isActuallyAssigned = !!p.freelancer || hasAcceptedProp;
 
+  // 2. NEW: Check if the freelancer has already applied to this project
+  // This looks through the proposals list for any entry matching this project ID
+  const hasApplied = proposals.some(prop => prop.project === p.id);
+
   let matchesFilter = false;
+  
   if (selectedSkill === "All") {
-    matchesFilter = !isActuallyAssigned; 
+    // Hide if assigned OR if the freelancer already applied
+    matchesFilter = !isActuallyAssigned && !hasApplied; 
   } else if (selectedSkill === "Assigned Projects") {
     matchesFilter = isActuallyAssigned; 
+  } else if (selectedSkill === "Available for work") {
+    // Specifically for freelancers: hide already applied projects
+    matchesFilter = !isActuallyAssigned && !hasApplied;
   } else {
-    matchesFilter = !isActuallyAssigned && p.skills?.includes(selectedSkill);
+    // Skill-specific filtering
+    matchesFilter = !isActuallyAssigned && !hasApplied && p.skills?.includes(selectedSkill);
   }
 
   return matchesSearch && matchesFilter;
@@ -63,6 +76,25 @@ const filteredProjects = projects.filter(p => {
       setFormData({ title: "", description: "", budget: "", duration: "", skills: [] });
     }
     setShowModal(true);
+  };
+
+  // Handle Proposal Submission with Deadline
+  const handleApplySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await API.post("/proposals/", {
+        project: applyingProject.id,
+        bid_amount: parseFloat(applyData.bid_amount),
+        cover_letter: applyData.cover_letter,
+        deadline: applyData.deadline // Sending deadline to backend
+      });
+      setApplyingProject(null);
+      setApplyData({ bid_amount: "", cover_letter: "", deadline: "" });
+      alert("Proposal submitted successfully!");
+      onRefresh();
+    } catch (err) {
+      alert("Error submitting proposal: " + JSON.stringify(err.response?.data || "Check fields"));
+    }
   };
 
   const toggleSkillSelection = (skillName) => {
@@ -102,11 +134,9 @@ const filteredProjects = projects.filter(p => {
     }
   };
 
-  console.log("Total Projects:", projects.length);
-  console.log("Assigned Projects Found:", projects.filter(p => !!p.freelancer).length);
-
   return (
     <div className="fade-in">
+      {/* Search and Navigation Bar */}
       <div className="view-header">
         <div className="title-area">
           <h3>{selectedSkill === "Assigned Projects" ? "Assigned Projects" : "Available Projects"}</h3>
@@ -121,7 +151,6 @@ const filteredProjects = projects.filter(p => {
         </div>
       </div>
 
-      {/* Button moved inside this container to align with the nav bar chips */}
       <div className="skills-nav-container alignment-wrapper">
         <div className="skills-nav-scroll">
           {uniqueSkills.map(skill => (
@@ -134,7 +163,6 @@ const filteredProjects = projects.filter(p => {
             </button>
           ))}
         </div>
-        
         {isClient && (
           <button className="btn-post-project-inline" onClick={() => handleOpenModal()}>
             + Post Project
@@ -142,12 +170,13 @@ const filteredProjects = projects.filter(p => {
         )}
       </div>
 
+      {/* CLIENT: POST/EDIT MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content premium-modal">
             <div className="modal-header">
               <h4>{editingProject ? "Edit Project Details" : "New Listing"}</h4>
-              <p>Update your project information and required skills.</p>
+              <p>Update project requirements and budget.</p>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="input-group">
@@ -167,23 +196,28 @@ const filteredProjects = projects.filter(p => {
                   <label>Duration</label>
                   <input type="text" required value={formData.duration} onChange={(e) => setFormData({...formData, duration: e.target.value})} />
                 </div>
+                <div className="input-group" style={{ marginTop: '15px' }}>
+  <label>Required Skills (Select multiple)</label>
+  <div className="skills-selection-grid" style={{ 
+    display: 'flex', 
+    flexWrap: 'wrap', 
+    gap: '8px', 
+    marginTop: '10px' 
+  }}>
+    {uniqueSkills.filter(s => s !== "All" && s !== "Assigned Projects" && s !== "Available for work").map(skill => (
+      <button
+        key={skill}
+        type="button"
+        onClick={() => toggleSkillSelection(skill)}
+        className={`skill-nav-item ${formData.skills.includes(skill) ? 'active' : ''}`}
+        style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+      >
+        {skill} {formData.skills.includes(skill) ? '✓' : '+'}
+      </button>
+    ))}
+  </div>
+</div>
               </div>
-
-              <div className="input-group">
-                <label>Tag Required Skills</label>
-                <div className="skill-selector-grid">
-                  {uniqueSkills.filter(s => s !== "All" && s !== "Available for work" && s !== "Assigned Projects").map(s => (
-                    <div 
-                      key={s} 
-                      className={`selectable-tag ${formData.skills.includes(s) ? 'selected' : ''}`}
-                      onClick={() => toggleSkillSelection(s)}
-                    >
-                      {s}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               <div className="modal-actions-footer">
                 <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Discard</button>
                 <button type="submit" className="btn-save-premium">Save Changes</button>
@@ -193,41 +227,80 @@ const filteredProjects = projects.filter(p => {
         </div>
       )}
 
+      {/* FREELANCER: ENHANCED APPLY MODAL WITH DEADLINE */}
+      {applyingProject && (
+        <div className="modal-overlay">
+          <div className="modal-content premium-modal fade-in">
+            <div className="modal-header">
+              <h4>Submit Proposal</h4>
+              <p>Applying for: <strong>{applyingProject.title}</strong></p>
+            </div>
+            <form onSubmit={handleApplySubmit}>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Your Bid Amount ($)</label>
+                  <input 
+                    type="number" 
+                    required 
+                    placeholder={`Budget: $${applyingProject.budget}`}
+                    value={applyData.bid_amount} 
+                    onChange={(e) => setApplyData({...applyData, bid_amount: e.target.value})} 
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Proposed Deadline</label>
+                  <input 
+                    type="date" 
+                    required 
+                    min={new Date().toISOString().split("T")[0]} // Prevents selecting past dates
+                    value={applyData.deadline} 
+                    onChange={(e) => setApplyData({...applyData, deadline: e.target.value})} 
+                  />
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Cover Letter / Pitch</label>
+                <textarea 
+                  rows="5" 
+                  required 
+                  placeholder="Introduce yourself and explain why you're perfect for this project..."
+                  value={applyData.cover_letter} 
+                  onChange={(e) => setApplyData({...applyData, cover_letter: e.target.value})} 
+                />
+              </div>
+              <div className="modal-actions-footer">
+                <button type="button" className="btn-cancel" onClick={() => setApplyingProject(null)}>Cancel</button>
+                <button type="submit" className="btn-save-premium">Send Application</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Project Grid Display */}
       <div className="project-grid">
         {filteredProjects.map(p => (
           <div key={p.id} className="premium-card">
             <div className="card-header-row">
               <div className="card-title-group">
                 <h4>{p.title}</h4>
-                {p.updated_at && p.created_at && p.updated_at !== p.created_at && (
-                  <span className="edited-badge">EDITED</span>
-                )}
               </div>
               <div className="card-price">${p.budget}</div>
             </div>
-            
             <p className="card-desc">{p.description.substring(0, 120)}...</p>
-            
             <div className="card-skills-wrapper">
-              {p.skills && p.skills.length > 0 ? (
-                p.skills.map(skill => <span key={skill} className="card-skill-tag">{skill}</span>)
-              ) : (
-                <span className="no-skills-text">No skills listed</span>
-              )}
+              {p.skills?.map(skill => <span key={skill} className="card-skill-tag">{skill}</span>)}
             </div>
-
             <div className="card-bottom">
               {p.freelancer ? (
-                <div className="assigned-status-badge">
-                   Working with: <strong>{p.freelancer_username || "Freelancer"}</strong>
-                </div>
+                <div className="assigned-status-badge">Working with: <strong>{p.freelancer_username}</strong></div>
               ) : isClient ? (
                 <div className="client-controls">
                   <button className="btn-edit" onClick={() => handleOpenModal(p)}>Edit</button>
                   <button className="btn-delete" onClick={() => handleDelete(p.id)}>Delete</button>
                 </div>
               ) : (
-                <button className="btn-apply-premium" onClick={() => alert("Apply logic")}>Apply Now</button>
+                <button className="btn-apply-premium" onClick={() => setApplyingProject(p)}>Apply Now</button>
               )}
             </div>
           </div>

@@ -1,70 +1,76 @@
-# Getting Started with Create React App
+# TalentLink | Professional Freelance Marketplace
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+TalentLink is a high-end, full-stack marketplace platform built to connect elite freelancers with clients. The platform manages the entire professional lifecycle—from initial project discovery and bidding to contract execution and reputation building.
 
-## Available Scripts
+---
+**Name** : Khushi Soni
+**Batch no.**: 1
 
-In the project directory, you can run:
 
-### `npm start`
+## 🚀 Project Roadmap & Progress (Weeks 1-6)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 📍 Milestone 1: Foundation & Backend Setup (Week 1 & 2)
+**Focus:** Infrastructure, Database Design, and Authentication.
+* **Role Definition:** Established distinct logic for **Client** and **Freelancer** roles.
+* **Schema Engineering:** Designed a relational database covering Users, Profiles, Projects, Proposals, Contracts, Messages, Reviews, and Skills.
+* **API Security:** Initialized Django REST Framework (DRF) with **JWT (JSON Web Tokens)** for secure, stateless authentication.
+* **Frontend Bootstrap:** Created the React application skeleton and integrated the authentication flow (Login/Register).
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+**Technical Outcomes:**
+* Mastery of role-based access control and JWT flows.
+* Relational schema design for complex marketplace interactions.
 
-### `npm test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 📍 Milestone 2: Profiles, Projects & Proposals (Week 3 & 4)
+**Focus:** Core Marketplace Objects and Discovery.
+* **Profile Engine:** Implemented a detailed Profile model (Portfolios, Skills, Hourly Rates, and Availability).
+* **Project Management:** Built full CRUD endpoints for project postings, allowing clients to manage their listings.
+* **Discovery Tools:** Developed search and filtering APIs to browse projects by skill, budget, and duration.
+* **Bidding System:** Launched the Proposal model, enabling freelancers to submit bids and clients to manage applications via the React UI.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+**Technical Outcomes:**
+* Implementation of advanced search/filter logic.
+* Connecting complex frontend forms to backend APIs using Axios.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+### 📍 Milestone 3: Contracts & Engagement (Week 5 & 6)
+**Focus:** Transactional Lifecycle and UI Refinement.
+* **Contract Flow:** Engineered the transactional logic to convert accepted proposals into formal **Contracts**, tracking project status through completion.
+* **Reputation System:** Built a post-project feedback loop allowing for verified Reviews and Star Ratings.
+* **Notification Engine:** Developed an in-app notification system to alert users of status updates and new messages.
+* **Bento UI Dashboard:** Redesigned the Profile Tab with a modern "Bento-grid" layout, featuring animated performance metrics like **Project Volume** and **Success Rates**.
+* **Professional Network:** Created a dynamic directory to display unique collaboration history between users.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+**Technical Outcomes:**
+* Implementation of end-to-end project lifecycles (Posting → Proposal → Contract → Review).
+* Real-time data visualization and modern CSS animations for professional records.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## 🛠️ Technical Stack
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+| Component | Technology |
+| :--- | :--- |
+| **Frontend** | React.js (Hooks, Context API) |
+| **Backend** | Django REST Framework (Python) |
+| **Database** | PostgreSQL (Production), SQLite (Local) |
+| **Auth** | JWT (SimpleJWT) |
+| **Styling** | Modern CSS3 (Bento Grid, Animations) |
+| **API Client** | Axios |
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## ⚙️ Local Development Setup
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### 1. Backend Configuration (Django)
+```bash
+# Navigate to backend folder
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver

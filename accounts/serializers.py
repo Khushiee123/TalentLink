@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Profile, Project, Proposal, Contract, Message , Skill
+from .models import Profile, Project, Proposal, Contract, Message , Skill , Notification , Review
+from django.db.models import Avg
 
 class RegisterSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(
@@ -71,6 +72,13 @@ class ProposalSerializer(serializers.ModelSerializer):
     client_username = serializers.ReadOnlyField(source='client.username')
     project_title = serializers.CharField(source='project.title', read_only=True)
     freelancer_username = serializers.ReadOnlyField(source='freelancer.username')
+    contract_id = serializers.ReadOnlyField(source='contract.id')
+
+    # 1. For Freelancer Portfolio: Rating for THIS specific proposal's contract
+    specific_rating = serializers.SerializerMethodField()
+    
+    # 2. For Client Vetting: Freelancer's overall average rating
+    freelancer_avg_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -78,9 +86,23 @@ class ProposalSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'project', 'project_title', 'freelancer', 
             'client_username', 'cover_letter', 'bid_amount', 
-            'submitted_at', 'status','freelancer_username','deadline'
+            'submitted_at', 'status','freelancer_username','deadline',
+              'specific_rating', 'freelancer_avg_rating', 'contract_id'
         ]
         read_only_fields = ['freelancer']
+
+    def get_specific_rating(self, obj):
+        # Access the rating via the one-to-one relationship with Contract
+        try:
+            return obj.contract.review.rating
+        except:
+            return None
+
+    def get_freelancer_avg_rating(self, obj):
+        # Calculate the average of all reviews received by this freelancer
+        from .models import Review
+        avg = Review.objects.filter(reviewed_user=obj.freelancer).aggregate(Avg('rating'))['rating__avg']
+        return round(avg, 1) if avg else 0
 
 class ContractSerializer(serializers.ModelSerializer):
     # These helper fields help the frontend show names instead of just IDs
@@ -108,3 +130,26 @@ class SkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
         fields = ['name']
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
+
+class ReviewSerializer(serializers.ModelSerializer):
+    reviewer_username = serializers.ReadOnlyField(source='reviewer.username')
+    project_title = serializers.ReadOnlyField(source='contract.project.title')
+
+    class Meta:
+        model = Review
+        fields = ['id', 'contract', 'rating', 'comment', 'reviewer_username', 'project_title', 'created_at']
+        # We mark these as read_only because we will set them in create()
+        read_only_fields = ['reviewer', 'reviewed_user']
+
+    def create(self, validated_data):
+        contract = validated_data.get('contract')
+        # Automatically assign the reviewer (logged-in user) and the person being reviewed
+        validated_data['reviewer'] = self.context['request'].user
+        validated_data['reviewed_user'] = contract.freelancer
+        
+        return super().create(validated_data)

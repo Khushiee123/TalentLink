@@ -16,6 +16,7 @@ from rest_framework.decorators import action
 from django.db.models import Q
 from .models import Notification
 from .serializers import NotificationSerializer
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -29,7 +30,10 @@ class ProfileView(APIView):
             "portfolio": profile.portfolio,   # Added
             "skills": profile.skills,         # Added
             "hourly_rate": profile.hourly_rate, # Added
-            "availability": profile.availability # Added
+            "availability": profile.availability, # Added
+            "bio": profile.bio,
+            "useAvatar": profile.useAvatar,
+            "avatar_url": profile.avatar_url,
         })
 
     def patch(self, request):
@@ -37,14 +41,30 @@ class ProfileView(APIView):
         # Update multiple fields at once
         data = request.data
         
+        # Updating existing fields
         profile.role = data.get("role", profile.role)
         profile.portfolio = data.get("portfolio", profile.portfolio)
-        profile.skills = data.get("skills", profile.skills) # Expecting a list or comma-separated string
+        profile.skills = data.get("skills", profile.skills)
         profile.hourly_rate = data.get("hourly_rate", profile.hourly_rate)
         profile.availability = data.get("availability", profile.availability)
         
+        # --- ADD NEW FIELDS TO PATCH ---
+        profile.bio = data.get("bio", profile.bio)
+        profile.useAvatar = data.get("useAvatar", profile.useAvatar)
+        profile.avatar_url = data.get("avatar_url", profile.avatar_url)
+        
         profile.save()
-        return Response({"message": "Profile updated successfully"}, status=status.HTTP_200_OK)
+
+        # IMPORTANT: Return the FULL updated profile so React state stays in sync
+        return Response({
+            "message": "Profile updated successfully",
+            "bio": profile.bio,
+            "useAvatar": profile.useAvatar,
+            "avatar_url": profile.avatar_url,
+            "role": profile.role,
+            "skills": profile.skills,
+            "availability": profile.availability
+        }, status=status.HTTP_200_OK)
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -178,6 +198,9 @@ class ContractViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+    
+    # ADD THESE PARSERS: This allows Django to handle files and text sent via FormData
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         user = self.request.user
@@ -196,6 +219,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         return queryset.order_by('timestamp')
 
     def perform_create(self, serializer):
+        # The sender is automatically set to the logged-in user
         serializer.save(sender=self.request.user)
 
 class ProposalViewSet(viewsets.ModelViewSet):
@@ -204,7 +228,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # This will trigger the 'created' signal in models.py 
-        # (Notifying the Client)
         serializer.save(freelancer=self.request.user)
     
     def get_queryset(self):
@@ -214,8 +237,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return (received | sent).distinct().order_by('-submitted_at')
 
     def perform_update(self, serializer):
-        # We simply save. The Signal in models.py handles 
-        # Contract creation, Project linking, and Notifications.
+        """
+        Modified to allow freelancers to submit projects 
+        and clients to update deadlines/status.
+        """
+        instance = self.get_object()
+        new_status = self.request.data.get('status')
+
+        # Security: Only the assigned freelancer can change status to 'submitted'
+        if new_status == 'submitted':
+            if instance.freelancer != self.request.user:
+                raise PermissionDenied("Only the hired freelancer can submit this project.")
+        
+        # Save updates (Signals in models.py will handle notifications/contracts)
         serializer.save()
 
     @action(detail=True, methods=['post'])
@@ -226,20 +260,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
         """
         proposal = self.get_object()
         
-        # Security check: Only the client who owns the project can hire
         if proposal.project.client != request.user:
             return Response({"error": "You do not have permission to accept this proposal."}, 
                             status=status.HTTP_403_FORBIDDEN)
 
-        # Update the status
         proposal.status = 'accepted'
-        proposal.save()  # <--- This save() triggers the notification signal in models.py
+        proposal.save()
 
         return Response({
             "status": "success",
             "message": f"Proposal accepted! {proposal.freelancer.username} has been hired."
         }, status=status.HTTP_200_OK)
-    
 
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer

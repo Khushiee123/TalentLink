@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import API from "../../services/api";
 
 const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
@@ -7,17 +7,36 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   
+  // State for Success Feedback
+  const [congratsData, setCongratsData] = useState({ show: false, title: "", message: "", emojis: [] });
+
   // State for Freelancer Application
   const [applyingProject, setApplyingProject] = useState(null);
   const [applyData, setApplyData] = useState({ 
     bid_amount: "", 
     cover_letter: "",
-    deadline: "" // New Deadline Field
+    deadline: "" 
   });
 
   const [formData, setFormData] = useState({
     title: "", description: "", budget: "", duration: "", skills: [] 
   });
+
+  // Global click listener to dismiss the success panel
+  useEffect(() => {
+    if (congratsData.show) {
+      const closePanel = () => setCongratsData({ ...congratsData, show: false });
+      // Timeout prevents the click that opens the modal from immediately closing it
+      const timer = setTimeout(() => {
+        window.addEventListener("click", closePanel);
+      }, 100);
+      
+      return () => {
+        window.removeEventListener("click", closePanel);
+        clearTimeout(timer);
+      };
+    }
+  }, [congratsData]);
 
   const uniqueSkills = useMemo(() => {
     const skillsSet = new Set(["All"]);
@@ -33,33 +52,23 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
   }, [projects, isClient]);
 
   const filteredProjects = projects.filter(p => {
-  const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
-  
-  // 1. Check if the project is already assigned (Freelancer hired)
-  const hasAcceptedProp = proposals.some(prop => prop.project === p.id && prop.status.toLowerCase() === "accepted");
-  const isActuallyAssigned = !!p.freelancer || hasAcceptedProp;
+    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const hasAcceptedProp = proposals.some(prop => prop.project === p.id && prop.status.toLowerCase() === "accepted");
+    const isActuallyAssigned = !!p.freelancer || hasAcceptedProp;
+    const hasApplied = proposals.some(prop => prop.project === p.id);
 
-  // 2. NEW: Check if the freelancer has already applied to this project
-  // This looks through the proposals list for any entry matching this project ID
-  const hasApplied = proposals.some(prop => prop.project === p.id);
-
-  let matchesFilter = false;
-  
-  if (selectedSkill === "All") {
-    // Hide if assigned OR if the freelancer already applied
-    matchesFilter = !isActuallyAssigned && !hasApplied; 
-  } else if (selectedSkill === "Assigned Projects") {
-    matchesFilter = isActuallyAssigned; 
-  } else if (selectedSkill === "Available for work") {
-    // Specifically for freelancers: hide already applied projects
-    matchesFilter = !isActuallyAssigned && !hasApplied;
-  } else {
-    // Skill-specific filtering
-    matchesFilter = !isActuallyAssigned && !hasApplied && p.skills?.includes(selectedSkill);
-  }
-
-  return matchesSearch && matchesFilter;
-});
+    let matchesFilter = false;
+    if (selectedSkill === "All") {
+      matchesFilter = !isActuallyAssigned && !hasApplied; 
+    } else if (selectedSkill === "Assigned Projects") {
+      matchesFilter = isActuallyAssigned; 
+    } else if (selectedSkill === "Available for work") {
+      matchesFilter = !isActuallyAssigned && !hasApplied;
+    } else {
+      matchesFilter = !isActuallyAssigned && !hasApplied && p.skills?.includes(selectedSkill);
+    }
+    return matchesSearch && matchesFilter;
+  });
 
   const handleOpenModal = (project = null) => {
     if (project) {
@@ -78,7 +87,7 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
     setShowModal(true);
   };
 
-  // Handle Proposal Submission with Deadline
+  // --- FREELANCER APPLY LOGIC ---
   const handleApplySubmit = async (e) => {
     e.preventDefault();
     try {
@@ -86,14 +95,46 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
         project: applyingProject.id,
         bid_amount: parseFloat(applyData.bid_amount),
         cover_letter: applyData.cover_letter,
-        deadline: applyData.deadline // Sending deadline to backend
+        deadline: applyData.deadline
       });
       setApplyingProject(null);
       setApplyData({ bid_amount: "", cover_letter: "", deadline: "" });
-      alert("Proposal submitted successfully!");
+      
+      // Trigger "Cheer Up" for freelancer
+      setCongratsData({
+        show: true,
+        title: "Go Get 'Em!",
+        message: "Your proposal was sent. Good luck on winning this project!",
+        emojis: ["🚀", "💪", "🎯"]
+      });
+
       onRefresh();
     } catch (err) {
       alert("Error submitting proposal: " + JSON.stringify(err.response?.data || "Check fields"));
+    }
+  };
+
+  // --- CLIENT POST LOGIC ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = { ...formData, budget: parseFloat(formData.budget) };
+      if (editingProject) {
+        await API.patch(`/projects/${editingProject.id}/`, payload);
+      } else {
+        await API.post("/projects/", payload);
+        // Trigger "Congrats" for client
+        setCongratsData({
+          show: true,
+          title: "Congratulations!",
+          message: "Your project is now live! Sit back and watch the experts apply.",
+          emojis: ["🎉", "🎊", "✨"]
+        });
+      }
+      setShowModal(false);
+      onRefresh();
+    } catch (err) {
+      alert("Error saving: " + JSON.stringify(err.response?.data || "Check Fields"));
     }
   };
 
@@ -118,25 +159,27 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = { ...formData, budget: parseFloat(formData.budget) };
-      if (editingProject) {
-        await API.patch(`/projects/${editingProject.id}/`, payload);
-      } else {
-        await API.post("/projects/", payload);
-      }
-      setShowModal(false);
-      onRefresh();
-    } catch (err) {
-      alert("Error saving: " + JSON.stringify(err.response?.data || "Check Fields"));
-    }
-  };
-
   return (
     <div className="fade-in">
-      {/* Search and Navigation Bar */}
+      <style>{congratsStyles}</style>
+
+      {/* --- REUSABLE SUCCESS PANEL --- */}
+      {congratsData.show && (
+        <div className="congrats-panel-overlay">
+          <div className="congrats-card scale-up">
+            <div className="party-emoji-container">
+              {congratsData.emojis.map((emoji, idx) => (
+                <span key={idx} className={`emoji-anim delay-${idx}`}>{emoji}</span>
+              ))}
+            </div>
+            <h3>{congratsData.title}</h3>
+            <p>{congratsData.message}</p>
+            <small>Click anywhere to dismiss</small>
+          </div>
+        </div>
+      )}
+
+      {/* View Header */}
       <div className="view-header">
         <div className="title-area">
           <h3>{selectedSkill === "Assigned Projects" ? "Assigned Projects" : "Available Projects"}</h3>
@@ -170,13 +213,12 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
         )}
       </div>
 
-      {/* CLIENT: POST/EDIT MODAL */}
+      {/* CLIENT MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content premium-modal">
             <div className="modal-header">
               <h4>{editingProject ? "Edit Project Details" : "New Listing"}</h4>
-              <p>Update project requirements and budget.</p>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="input-group">
@@ -196,38 +238,17 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
                   <label>Duration</label>
                   <input type="text" required value={formData.duration} onChange={(e) => setFormData({...formData, duration: e.target.value})} />
                 </div>
-                <div className="input-group" style={{ marginTop: '15px' }}>
-  <label>Required Skills (Select multiple)</label>
-  <div className="skills-selection-grid" style={{ 
-    display: 'flex', 
-    flexWrap: 'wrap', 
-    gap: '8px', 
-    marginTop: '10px' 
-  }}>
-    {uniqueSkills.filter(s => s !== "All" && s !== "Assigned Projects" && s !== "Available for work").map(skill => (
-      <button
-        key={skill}
-        type="button"
-        onClick={() => toggleSkillSelection(skill)}
-        className={`skill-nav-item ${formData.skills.includes(skill) ? 'active' : ''}`}
-        style={{ fontSize: '0.8rem', padding: '5px 12px' }}
-      >
-        {skill} {formData.skills.includes(skill) ? '✓' : '+'}
-      </button>
-    ))}
-  </div>
-</div>
               </div>
               <div className="modal-actions-footer">
                 <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Discard</button>
-                <button type="submit" className="btn-save-premium">Save Changes</button>
+                <button type="submit" className="btn-save-premium">Save Project</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* FREELANCER: ENHANCED APPLY MODAL WITH DEADLINE */}
+      {/* FREELANCER MODAL */}
       {applyingProject && (
         <div className="modal-overlay">
           <div className="modal-content premium-modal fade-in">
@@ -239,34 +260,16 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
               <div className="form-row">
                 <div className="input-group">
                   <label>Your Bid Amount ($)</label>
-                  <input 
-                    type="number" 
-                    required 
-                    placeholder={`Budget: $${applyingProject.budget}`}
-                    value={applyData.bid_amount} 
-                    onChange={(e) => setApplyData({...applyData, bid_amount: e.target.value})} 
-                  />
+                  <input type="number" required value={applyData.bid_amount} onChange={(e) => setApplyData({...applyData, bid_amount: e.target.value})} />
                 </div>
                 <div className="input-group">
                   <label>Proposed Deadline</label>
-                  <input 
-                    type="date" 
-                    required 
-                    min={new Date().toISOString().split("T")[0]} // Prevents selecting past dates
-                    value={applyData.deadline} 
-                    onChange={(e) => setApplyData({...applyData, deadline: e.target.value})} 
-                  />
+                  <input type="date" required min={new Date().toISOString().split("T")[0]} value={applyData.deadline} onChange={(e) => setApplyData({...applyData, deadline: e.target.value})} />
                 </div>
               </div>
               <div className="input-group">
                 <label>Cover Letter / Pitch</label>
-                <textarea 
-                  rows="5" 
-                  required 
-                  placeholder="Introduce yourself and explain why you're perfect for this project..."
-                  value={applyData.cover_letter} 
-                  onChange={(e) => setApplyData({...applyData, cover_letter: e.target.value})} 
-                />
+                <textarea rows="5" required value={applyData.cover_letter} onChange={(e) => setApplyData({...applyData, cover_letter: e.target.value})} />
               </div>
               <div className="modal-actions-footer">
                 <button type="button" className="btn-cancel" onClick={() => setApplyingProject(null)}>Cancel</button>
@@ -277,20 +280,15 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
         </div>
       )}
 
-      {/* Project Grid Display */}
+      {/* Project Grid */}
       <div className="project-grid">
         {filteredProjects.map(p => (
           <div key={p.id} className="premium-card">
             <div className="card-header-row">
-              <div className="card-title-group">
-                <h4>{p.title}</h4>
-              </div>
+              <h4>{p.title}</h4>
               <div className="card-price">${p.budget}</div>
             </div>
             <p className="card-desc">{p.description.substring(0, 120)}...</p>
-            <div className="card-skills-wrapper">
-              {p.skills?.map(skill => <span key={skill} className="card-skill-tag">{skill}</span>)}
-            </div>
             <div className="card-bottom">
               {p.freelancer ? (
                 <div className="assigned-status-badge">Working with: <strong>{p.freelancer_username}</strong></div>
@@ -309,5 +307,37 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
     </div>
   );
 };
+
+const congratsStyles = `
+  .congrats-panel-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.3);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+  }
+  .congrats-card {
+    background: white; padding: 40px; border-radius: 30px;
+    text-align: center; box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+    max-width: 400px; border: 1px solid #eef2f6;
+  }
+  .party-emoji-container { font-size: 3.5rem; margin-bottom: 20px; display: flex; justify-content: center; gap: 15px; }
+  .emoji-anim { display: inline-block; animation: bouncePop 0.8s ease infinite alternate; }
+  .delay-1 { animation-delay: 0.2s; }
+  .delay-2 { animation-delay: 0.4s; }
+  @keyframes bouncePop {
+    from { transform: scale(1) rotate(-10deg); }
+    to { transform: scale(1.2) rotate(10deg) translateY(-10px); }
+  }
+  .scale-up { animation: scaleUpIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  @keyframes scaleUpIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .congrats-card h3 { color: #0f172a; font-size: 1.8rem; margin: 10px 0; font-weight: 800; }
+  .congrats-card p { color: #475569; font-size: 1rem; line-height: 1.5; margin-bottom: 25px; }
+  .congrats-card small { color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+`;
 
 export default ProjectsTab;

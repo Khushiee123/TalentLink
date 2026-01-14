@@ -43,14 +43,28 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['id', 'username', 'role', 'skills', 'portfolio', 'hourly_rate', 'availability']
+        fields = ['id', 'username', 'role', 'skills', 'portfolio', 'hourly_rate', 'availability',
+                  'bio', 'useAvatar', 'avatar_url']
     
     # Add this to handle old profiles with empty data
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # If role is None (null), return a default string so React doesn't crash
+        
+        # 1. Handle Role null safety
         if data.get('role') is None:
             data['role'] = "Not Specified"
+            
+        # 2. Handle Bio null safety
+        if data.get('bio') is None:
+            data['bio'] = ""
+
+        # 3. Handle Avatar null safety (Ensures React gets a Boolean and a String)
+        if data.get('useAvatar') is None:
+            data['useAvatar'] = False
+            
+        if data.get('avatar_url') is None:
+            data['avatar_url'] = ""
+
         return data
 # --- IMPROVED FOR TASK 2 & 3 ---
 class ProjectSerializer(serializers.ModelSerializer):
@@ -74,36 +88,30 @@ class ProposalSerializer(serializers.ModelSerializer):
     freelancer_username = serializers.ReadOnlyField(source='freelancer.username')
     contract_id = serializers.ReadOnlyField(source='contract.id')
 
-    # 1. For Freelancer Portfolio: Rating for THIS specific proposal's contract
     specific_rating = serializers.SerializerMethodField()
-    
-    # 2. For Client Vetting: Freelancer's overall average rating
     freelancer_avg_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
-        # Change 'created_at' to 'submitted_at' to match your Model
         fields = [
             'id', 'project', 'project_title', 'freelancer', 
             'client_username', 'cover_letter', 'bid_amount', 
             'submitted_at', 'status','freelancer_username','deadline',
-              'specific_rating', 'freelancer_avg_rating', 'contract_id'
+            'specific_rating', 'freelancer_avg_rating', 'contract_id'
         ]
         read_only_fields = ['freelancer']
 
     def get_specific_rating(self, obj):
-        # Access the rating via the one-to-one relationship with Contract
         try:
             return obj.contract.review.rating
         except:
             return None
 
     def get_freelancer_avg_rating(self, obj):
-        # Calculate the average of all reviews received by this freelancer
         from .models import Review
         avg = Review.objects.filter(reviewed_user=obj.freelancer).aggregate(Avg('rating'))['rating__avg']
         return round(avg, 1) if avg else 0
-
+    
 class ContractSerializer(serializers.ModelSerializer):
     # These helper fields help the frontend show names instead of just IDs
     project_title = serializers.ReadOnlyField(source='project.title')
@@ -122,7 +130,10 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ['id', 'contract', 'sender', 'sender_username', 'content', 'timestamp']
+        fields = ['id', 'contract', 'sender', 'sender_username', 'content','file', 'timestamp']
+        extra_kwargs = {
+            'content': {'required': False, 'allow_blank': True}
+        }
         # Add this line to stop the "sender is required" error
         read_only_fields = ['sender']
 

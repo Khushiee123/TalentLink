@@ -181,3 +181,6 @@ CORS_ALLOW_METHODS = [
 # TEMPORARY: Add this to the bottom of settings.py
 CORS_ALLOW_ALL_ORIGINS = True  
 CORS_ALLOW_CREDENTIALS = True
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

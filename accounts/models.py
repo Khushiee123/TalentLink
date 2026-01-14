@@ -48,7 +48,13 @@ class Proposal(models.Model):
     bid_amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(
         max_length=20, 
-        choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('rejected', 'Rejected')],
+        # ADDED 'submitted' to choices below
+        choices=[
+            ('pending', 'Pending'), 
+            ('accepted', 'Accepted'), 
+            ('submitted', 'Submitted'), 
+            ('rejected', 'Rejected')
+        ],
         default='pending'
     )
     submitted_at = models.DateTimeField(auto_now_add=True)
@@ -57,6 +63,7 @@ class Proposal(models.Model):
     
     def __str__(self):
         return f"Proposal for {self.project.title} by {self.freelancer.username}"
+    
 
 class Contract(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
@@ -76,8 +83,12 @@ class Contract(models.Model):
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     contract = models.ForeignKey(Contract, related_name='messages', on_delete=models.CASCADE, null=True, blank=True)
-    content = models.TextField()
+    content = models.TextField(blank=True, null=True) 
+    file = models.FileField(upload_to='chat_attachments/', blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['timestamp']
 
     def __str__(self):
         return f"Message from {self.sender}"
@@ -97,6 +108,10 @@ class Profile(models.Model):
     skills = models.CharField(max_length=255, blank=True, null=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     availability = models.BooleanField(default=True)
+    # --- NEW AVATAR FIELDS ---
+    bio = models.TextField(blank=True, null=True)
+    useAvatar = models.BooleanField(default=False)
+    avatar_url = models.URLField(max_length=500, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"

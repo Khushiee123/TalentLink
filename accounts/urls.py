@@ -4,7 +4,8 @@ from django.urls import path, include
 from .views import (RegisterView, LoginView, ProfileView , 
                     ProjectListCreateView, ProjectDetailView,
                     ProposalCreateView, ProjectProposalsView ,
-                    ProposalViewSet, ContractViewSet, MessageViewSet, NotificationViewSet, ReviewViewSet)
+                    ProposalViewSet, ContractViewSet, MessageViewSet, 
+                    NotificationViewSet, ReviewViewSet, SkillListView)
 
 router = DefaultRouter()
 router.register(r'proposals', ProposalViewSet, basename='proposal')
@@ -28,4 +29,5 @@ urlpatterns = [
     # Proposal Endpoints (Task 4)
     path('proposals/', ProposalCreateView.as_view(), name='submit-proposal'),
     path('projects/<int:project_id>/proposals/', ProjectProposalsView.as_view(), name='project-proposals'),
+    path('skills/', SkillListView.as_view(), name='skill-list'),
 ]

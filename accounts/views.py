@@ -8,8 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Project, Profile, Proposal, Contract, Message , Review 
-from .serializers import ProjectSerializer, ProfileSerializer , ProposalSerializer, ContractSerializer, MessageSerializer , ReviewSerializer
+from .models import Project, Profile, Proposal, Contract, Message , Review , Skill
+from .serializers import ProjectSerializer, ProfileSerializer , ProposalSerializer, ContractSerializer, MessageSerializer , ReviewSerializer, SkillSerializer
 from .serializers import RegisterSerializer
 from rest_framework import viewsets, status , permissions
 from rest_framework.decorators import action
@@ -320,3 +320,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
         except Contract.DoesNotExist:
             from rest_framework.exceptions import ValidationError
             raise ValidationError({"contract": "The specified contract does not exist."})
+        
+class SkillListView(generics.ListAPIView):
+    queryset = Skill.objects.all()
+    serializer_class = SkillSerializer
+    # AllowAny makes it easy to test; change to IsAuthenticated later if needed
+    permission_classes = [AllowAny]

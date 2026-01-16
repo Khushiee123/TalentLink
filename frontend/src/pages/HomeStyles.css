@@ -8,6 +8,12 @@
     --text-main: #0f172a;
     --text-muted: #64748b;
     --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+
+    --modal-bg: #ffffff;
+    --modal-header-bg: #f8fafc;
+    --modal-border: #e2e8f0;
+    --modal-text: #0f172a;
+    --modal-muted: #64748b;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -305,13 +311,38 @@
 }
 
 .table-row {
-  border-bottom: 1px solid #f8fafc;
-  transition: background 0.2s;
+  position: relative;
+  transition: background 0.2s ease;
 }
 
 .table-row:hover {
-  background: #fbfcfe;
+  background: rgba(120, 120, 138, 0.03);
 }
+
+/* Action cell */
+.premium-table td:last-child {
+  position: relative;
+}
+
+/* Details / Rate buttons */
+.table-btn-primary,
+.table-btn-ghost {
+  position: relative;
+  z-index: 2;
+  background: rgb(105, 106, 117);
+  transition: all 0.2s ease;
+}
+
+.table-btn-ghost:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.table-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(29, 191, 115, 0.25);
+}
+
 
 .premium-table td {
   padding: 20px 15px;
@@ -338,6 +369,8 @@
   overflow-y: auto;
   padding: 0;
   border-radius: 16px;
+  background: var(--modal-bg);
+  color: var(--modal-text);
 }
 
 .report-header {
@@ -347,6 +380,8 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #e2e8f0;
+  background: var(--modal-header-bg);
+  border-bottom: 1px solid var(--modal-border);
 }
 
 .report-body {
@@ -357,9 +392,10 @@
 .report-section h4 {
   font-size: 1.5rem;
   margin-bottom: 5px;
+  color: var(--modal-text);
 }
 
-.report-date { font-size: 0.85rem; color: #64748b; margin-bottom: 2rem; }
+.report-date { font-size: 0.85rem; color: var(--modal-muted); margin-bottom: 2rem; }
 
 .report-grid {
   display: grid;
@@ -372,27 +408,28 @@
   display: block;
   font-size: 0.7rem;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--modal-muted);
   font-weight: 700;
   margin-bottom: 4px;
 }
 
-.info-group p { font-weight: 600; color: #1e293b; }
-.price-text { color: #1dbf73; font-size: 1.2rem; font-weight: 800 !important; }
+.info-group p { font-weight: 600; color: var(--modal-text); }
+.price-text { color: var(--primary); font-size: 1.2rem; font-weight: 800 !important; }
 
 .report-details {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--modal-border);
 }
 
 .details-content {
-  background: #f8fafc;
+  background: #f1f5f9;
+  color: #334155;
   padding: 1.5rem;
   border-radius: 12px;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #475569;
+
 }
 
 .btn-print {
@@ -448,6 +485,8 @@
   font-size: 1.1rem;
 }
 
+
+
 /* Circular Minimalist Close Button */
 .btn-close-circle {
   width: 38px;
@@ -474,6 +513,37 @@
   font-size: 1.1rem;
   font-weight: bold;
 }
+
+/* ⭐ STAR RATING – FORCE YELLOW IN ALL THEMES */
+.rating-stars,
+.star-rating,
+.review-stars {
+  color: #facc15; /* Tailwind yellow-400 */
+}
+
+/* Individual star icons */
+.rating-stars i,
+.star-rating i,
+.review-stars i,
+.star-icon {
+  color: #facc15 !important;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+/* Hover effect */
+.rating-stars i:hover,
+.star-rating i:hover {
+  color: #fbbf24; /* slightly deeper yellow */
+  transform: scale(1.15);
+}
+
+/* Selected / active stars */
+.rating-stars i.active,
+.star-rating i.active,
+.star-icon.active {
+  color: #facc15 !important;
+}
+
 
 /* Branding Fix */
 .report-header .logo-text span:last-child {
@@ -604,11 +674,11 @@
 
   /* PROJECT CARDS */
   .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
-  .premium-card { background: white; padding: 2rem; border-radius: 20px; box-shadow: var(--card-shadow); border: 1px solid #f1f5f9; position: relative; transition: 0.3s; }
-  .premium-card:hover { transform: translateY(-8px); border-color: var(--primary); }
+  .premium-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; transition: all 0.25s ease; }
+  .premium-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);}
   .type-pill { background: #f0fdf4; color: var(--primary); padding: 5px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
   .card-top { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
-  .premium-card h4 { font-size: 1.25rem; margin-bottom: 12px; line-height: 1.4; }
+  .premium-card h4 { font-size: 1.25rem; margin-bottom: 12px; line-height: 1.4; color: #0f172a; font-weight: 600;}
   .card-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 2rem; }
   .card-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 1.5rem; border-top: 1px dashed #e2e8f0; }
   .card-price { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
@@ -1072,18 +1142,69 @@
 }
 
 /* MODALS */
-.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-box { background: white; width: 500px; padding: 2.5rem; border-radius: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-.modal-body input, .modal-body textarea { width: 100%; background: #f1f5f9; border: 2px solid transparent; border-radius: 12px; padding: 14px; margin-bottom: 1rem; outline: none; transition: 0.2s; font-family: inherit; }
-.modal-body input:focus { border-color: var(--primary); background: white; }
-.modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.modal-actions { display: flex; gap: 12px; margin-top: 1rem; }
-.btn-primary { flex: 1; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; }
-.btn-cancel { flex: 1; background: #f1f5f9; color: var(--text-muted); border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000; },
+.modal-box {background: var(--modal-bg); color: var(--modal-text); width: 500px; padding: 2.5rem; border-radius: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); },
+.modal-body input, .modal-body textarea { width: 100%; background: #f1f5f9; border: 2px solid transparent; border-radius: 12px; padding: 14px; margin-bottom: 1rem; outline: none; transition: 0.2s; font-family: inherit; },
+.modal-body input:focus { border-color: var(--primary); background: white; },
+.modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; },
+.modal-actions { display: flex; gap: 12px; margin-top: 1rem; },
+.btn-primary { flex: 1; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; },
+.btn-cancel { flex: 1; background: #f1f5f9; color: var(--text-muted); border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; },
+.modal-content,
+.premium-modal,
+.premium-modal-content {
+  background: var(--modal-bg);
+  color: var(--modal-text);
+},
+
+.premium-modal-overlay {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.modal-header h4 {
+  color: var(--modal-text);
+}
+
+.modal-header p {
+  color: var(--modal-muted);
+}
+
+.modal-body textarea,
+.modal-content textarea {
+  background: #f8fafc;
+  color: var(--modal-text);
+  border: 1px solid var(--modal-border);
+}
+
+.modal-body textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* MODAL BUTTON COLORS */
+.btn-primary,
+.btn-save,
+.btn-save-premium,
+.btn-print-premium {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover,
+.btn-save:hover,
+.btn-save-premium:hover {
+  background: var(--primary-dark);
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: var(--modal-muted);
+}
+
 
 /* --- MESSAGES TAB --- */
 
-/* --- ENHANCED SAAS MESSAGING TAB (Consolidated) --- */
+
 
 .chat-app-container { 
   display: flex; 
@@ -1374,7 +1495,347 @@
   display: none;
 }
 
+/* ================================= */
+/* DARK THEME — Home.js compatible */
+/* ================================= */
 
+body.dark-theme {
+  background-color: #0b1220;
+  color: #f8fafc;
+}
 
+/* App shell */
+body.dark-theme .app-shell {
+  background: #0b1220;
+}
 
+/* Sidebar */
+body.dark-theme .sidebar {
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+}
+
+body.dark-theme .brand-box {
+  color: #f8fafc;
+}
+
+body.dark-theme .logo-icon {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+body.dark-theme .logo-text span {
+  color: #38bdf8;
+}
+
+/* Sidebar nav buttons */
+body.dark-theme .side-nav button {
+  color: #cbd5f5;
+}
+
+body.dark-theme .side-nav button:hover {
+  background: #1e293b;
+}
+
+body.dark-theme .side-nav button.active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* Sidebar footer */
+body.dark-theme .logout-card {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+body.dark-theme .logout-card:hover {
+  background: #334155;
+}
+
+/* Main content */
+body.dark-theme .main-content {
+  background: #0b1220;
+}
+
+/* Header */
+body.dark-theme .main-header {
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+}
+
+body.dark-theme .breadcrumb {
+  color: #94a3b8;
+}
+
+/* Theme toggle */
+body.dark-theme .theme-toggle-btn {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+body.dark-theme .theme-toggle-btn:hover {
+  background: #334155;
+}
+
+/* Notification bell */
+body.dark-theme .bell-button {
+  color: #f8fafc;
+}
+
+body.dark-theme .badge {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* Notification dropdown */
+body.dark-theme .notification-dropdown {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+}
+
+body.dark-theme .dropdown-header {
+  border-bottom: 1px solid #1e293b;
+}
+
+body.dark-theme .notification-item {
+  border-bottom: 1px solid #1e293b;
+}
+
+body.dark-theme .notification-item.unread {
+  background: #1e293b;
+}
+
+body.dark-theme .notification-item:hover {
+  background: #334155;
+}
+
+body.dark-theme .nt-text-box p {
+  color: #e5e7eb;
+}
+
+body.dark-theme .nt-text-box small {
+  color: #94a3b8;
+}
+
+/* User profile summary */
+body.dark-theme .user-profile-summary {
+  background: #1e293b;
+}
+
+body.dark-theme .user-name-text .name {
+  color: #f8fafc;
+}
+
+body.dark-theme .user-name-text .role {
+  color: #94a3b8;
+}
+
+/* Scroll content */
+body.dark-theme .scroll-content {
+  background: #0b1220;
+}
+
+/* Cards / tables */
+body.dark-theme .clean-table-container,
+body.dark-theme .welcome-banner,
+body.dark-theme .proposal-card,
+body.dark-theme .contract-item-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+}
+
+/* Reviews text overrides */
+body.dark-theme .clean-table-container strong {
+  color: #f8fafc !important;
+}
+
+body.dark-theme .clean-table-container p {
+  color: #cbd5f5 !important;
+}
+
+body.dark-theme .clean-table-container span {
+  color: #94a3b8 !important;
+}
+
+/* Empty state */
+body.dark-theme .empty-state p {
+  color: #94a3b8;
+}
+
+/* Loading screen */
+body.dark-theme .loading-screen {
+  background: #0b1220;
+}
+
+/* Scrollbar */
+body.dark-theme ::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+body.dark-theme .chat-sidebar-main {
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+}
+
+body.dark-theme .chat-user-item {
+  color: #e5e7eb;
+}
+
+body.dark-theme .chat-user-item h4 {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+body.dark-theme .chat-user-item p,
+body.dark-theme .chat-user-item span,
+body.dark-theme .chat-user-item small {
+  color: #94a3b8;
+}
+
+/* Active conversation */
+body.dark-theme .chat-user-item.active {
+  background: #1e293b;
+  border-left-color: #22c55e;
+}
+
+body.dark-theme .chat-user-item.active h4 {
+  color: #ffffff;
+}
+
+/* --- RESPONSIVE LOGIC --- */
+
+/* 1. Hide Hamburger on Desktop */
+.mobile-hamburger {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 2000;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  /* 2. Show Hamburger */
+  .mobile-hamburger {
+    display: block;
+  }
+
+  /* 3. Make Sidebar an Overlay */
+  .sidebar {
+    position: fixed;
+    left: -100%; /* Hide off-screen */
+    top: 0;
+    bottom: 0;
+    z-index: 1500;
+    width: 260px;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.mobile-open {
+    left: 0; /* Slide in */
+  }
+
+  /* 4. Remove sidebar margin from main content */
+  .main-content {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  /* 5. Stack the Header elements */
+  .main-header {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    margin-top: 50px; /* Space for hamburger */
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* 6. Adjust Grids */
+  .reviews-grid {
+    grid-template-columns: 1fr !important; /* Stack reviews in one column */
+  }
+
+  .user-name-text {
+    display: none; /* Hide name on very small screens to save space */
+  }
+}
+@media (max-width: 600px) {
+  .welcome-banner {
+    flex-direction: column;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .banner-img {
+    display: none; /* Hide large emojis/images on small mobile */
+  }
+}
+
+/* ============================= */
+/* DARK MODE — PROPOSALS SECTION */
+/* ============================= */
+
+body.dark-theme .proposal-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  color: #f8fafc;
+}
+
+/* Project title */
+body.dark-theme .proposal-card h4,
+body.dark-theme .proposal-card .p-title {
+  color: #f8fafc !important;
+}
+
+/* Labels (BID, DEADLINE, etc.) */
+body.dark-theme .proposal-card .p-label {
+  color: #94a3b8 !important;
+}
+
+/* Values (amounts, dates) */
+body.dark-theme .proposal-card .p-value {
+  color: #ffffff !important;
+}
+
+/* From: kdsoni */
+body.dark-theme .proposal-card small,
+body.dark-theme .proposal-card span {
+  color: #cbd5f5;
+}
+
+/* Divider lines inside proposal card */
+body.dark-theme .proposal-card .p-card-body {
+  border-top: 1px solid #1e293b;
+  border-bottom: 1px solid #1e293b;
+}
+
+/* Icon container */
+body.dark-theme .proposal-card .p-icon {
+  background: #1e293b;
+  color: #22c55e;
+}
+
+/* Status badge tweaks (keep readable) */
+body.dark-theme .p-status-badge.accepted {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+body.dark-theme .p-status-badge.pending {
+  background: rgba(250, 204, 21, 0.15);
+  color: #fde047;
+}
 

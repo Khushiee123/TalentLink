@@ -140,7 +140,7 @@ class MessageSerializer(serializers.ModelSerializer):
 class SkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
-        fields = ['name']
+        fields = ['id','name']
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:

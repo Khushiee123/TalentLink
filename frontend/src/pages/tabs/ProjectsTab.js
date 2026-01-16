@@ -7,6 +7,9 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   
+  // NEW: State for all available skills from the database
+  const [allSkills, setAllSkills] = useState([]);
+  
   // State for Success Feedback
   const [congratsData, setCongratsData] = useState({ show: false, title: "", message: "", emojis: [] });
 
@@ -22,11 +25,24 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
     title: "", description: "", budget: "", duration: "", skills: [] 
   });
 
+  // Fetch all available skills for the selection list
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        // Ensure this endpoint matches your backend (e.g., /api/skills/)
+        const response = await API.get("/skills/");
+        setAllSkills(response.data);
+      } catch (err) {
+        console.error("Error fetching global skills list", err);
+      }
+    };
+    fetchSkills();
+  }, []);
+
   // Global click listener to dismiss the success panel
   useEffect(() => {
     if (congratsData.show) {
       const closePanel = () => setCongratsData({ ...congratsData, show: false });
-      // Timeout prevents the click that opens the modal from immediately closing it
       const timer = setTimeout(() => {
         window.addEventListener("click", closePanel);
       }, 100);
@@ -87,7 +103,6 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
     setShowModal(true);
   };
 
-  // --- FREELANCER APPLY LOGIC ---
   const handleApplySubmit = async (e) => {
     e.preventDefault();
     try {
@@ -100,7 +115,6 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
       setApplyingProject(null);
       setApplyData({ bid_amount: "", cover_letter: "", deadline: "" });
       
-      // Trigger "Cheer Up" for freelancer
       setCongratsData({
         show: true,
         title: "Go Get 'Em!",
@@ -114,7 +128,6 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
     }
   };
 
-  // --- CLIENT POST LOGIC ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -123,7 +136,6 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
         await API.patch(`/projects/${editingProject.id}/`, payload);
       } else {
         await API.post("/projects/", payload);
-        // Trigger "Congrats" for client
         setCongratsData({
           show: true,
           title: "Congratulations!",
@@ -229,6 +241,27 @@ const ProjectsTab = ({ projects, proposals, isClient, onRefresh }) => {
                 <label>Detailed Description</label>
                 <textarea rows="4" required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
               </div>
+
+              {/* NEW SKILL SELECTION UI */}
+              <div className="input-group">
+  <label>Required Skills (Select multiple)</label>
+  <div className="skills-selection-grid">
+    {allSkills.length > 0 ? (
+      allSkills.map(s => (
+        <div 
+          key={s.id} 
+          className={`skill-tag-selectable ${formData.skills.includes(s.name) ? 'selected' : ''}`}
+          onClick={() => toggleSkillSelection(s.name)}
+        >
+          {s.name}
+        </div>
+      ))
+    ) : (
+      <span style={{color: '#94a3b8', fontSize: '0.9rem'}}>Loading available skills...</span>
+    )}
+  </div>
+</div>
+
               <div className="form-row">
                 <div className="input-group">
                   <label>Budget ($)</label>
@@ -338,6 +371,40 @@ const congratsStyles = `
   .congrats-card h3 { color: #0f172a; font-size: 1.8rem; margin: 10px 0; font-weight: 800; }
   .congrats-card p { color: #475569; font-size: 1rem; line-height: 1.5; margin-bottom: 25px; }
   .congrats-card small { color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Skills Selection Grid Styles */
+  .skills-selection-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+  .skill-tag-selectable {
+    padding: 6px 14px;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .skill-tag-selectable:hover {
+    border-color: #22c55e;
+    color: #22c55e;
+  }
+  .skill-tag-selectable.selected {
+    background: #22c55e;
+    color: white;
+    border-color: #22c55e;
+    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
+  }
 `;
 
 export default ProjectsTab;

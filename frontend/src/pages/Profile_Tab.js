@@ -264,4 +264,126 @@ const finalStyles = `
   .av-choice { border: 2px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; }
   .av-choice.selected { border-color: #4f46e5; transform: scale(1.1); }
   .av-choice img { width: 100%; border-radius: 6px; }
+
+  /* ===================================== */
+/* PROFILE TAB — DARK THEME ONLY */
+/* ===================================== */
+
+body.dark-theme .profile-dashboard-container {
+  color: #e5e7eb;
+}
+
+/* ---------- Header Card ---------- */
+body.dark-theme .profile-header-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  box-shadow: none;
+}
+
+body.dark-theme .status-dot {
+  border-color: #0f172a;
+}
+
+/* Edit Button */
+body.dark-theme .btn-main-edit {
+  background: #22c55e;
+  color: #052e16;
+}
+
+/* ---------- Bento Cards ---------- */
+body.dark-theme .card-bento {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+}
+
+body.dark-theme .card-bento h3 {
+  color: #94a3b8;
+}
+
+body.dark-theme .quick-edit {
+  color: #38bdf8;
+}
+
+/* ---------- Output Cards ---------- */
+body.dark-theme .output-card {
+  background: #1e293b;
+}
+
+body.dark-theme .output-details a {
+  color: #38bdf8;
+}
+
+/* ---------- Skill Tags ---------- */
+body.dark-theme .skill-tag {
+  background: #1e293b;
+  color: #e5e7eb;
+}
+
+/* ---------- Modal ---------- */
+body.dark-theme .modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+body.dark-theme .modal-box {
+  background: #0f172a;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+}
+
+body.dark-theme .modal-header {
+  color: #f8fafc;
+}
+
+/* ---------- Form Fields ---------- */
+body.dark-theme .form-field label {
+  color: #cbd5e1;
+}
+
+body.dark-theme input,
+body.dark-theme textarea {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f8fafc;
+}
+
+body.dark-theme input::placeholder,
+body.dark-theme textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Submit Button */
+body.dark-theme .btn-submit-full {
+  background: #22c55e;
+  color: #052e16;
+}
+
+/* ---------- Avatar Picker ---------- */
+body.dark-theme .avatar-picker-box {
+  background: #1e293b;
+}
+
+body.dark-theme .toggle-row {
+  color: #94a3b8;
+}
+
+body.dark-theme .toggle-row .active {
+  color: #38bdf8;
+}
+
+body.dark-theme .toggle-btn {
+  background: #334155;
+}
+
+body.dark-theme .toggle-btn.on {
+  background: #22c55e;
+}
+
+body.dark-theme .toggle-knob {
+  background: #f8fafc;
+}
+
+/* Avatar selection */
+body.dark-theme .av-choice.selected {
+  border-color: #22c55e;
+}
+
 `;

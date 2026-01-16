@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     # Third-party
     'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
     
 
     # Local apps
@@ -95,7 +96,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         # This will use the DATABASE_URL environment variable on Render
-        default=os.environ.get('DATABASE_URL'),
+        default=os.environ.get('DATABASE_URL', ''),
         conn_max_age=600
     )
 }

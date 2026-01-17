@@ -8,6 +8,15 @@ from .models import Project, Proposal, Contract, Message, Review, Skill, Profile
 admin.site.register(Message)
 admin.site.register(Review)
 admin.site.register(Skill)
+
+class CustomUserAdmin(UserAdmin):
+    inlines = (ProfileInline,)
+
+# Move the registration HERE, below the class definition
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
 admin.site.register(User, CustomUserAdmin)
 
 

@@ -5,9 +5,11 @@ from django.contrib.auth.models import User
 from .models import Project, Proposal, Contract, Message, Review, Skill, Profile
 
 
-admin.site.register(Message)
-admin.site.register(Review)
-admin.site.register(Skill)
+
+class ProfileInline(admin.StackedInline):
+    model = Profile
+    can_delete = False
+    verbose_name_plural = 'Profile'
 
 class CustomUserAdmin(UserAdmin):
     inlines = (ProfileInline,)
@@ -20,10 +22,10 @@ except admin.sites.NotRegistered:
 admin.site.register(User, CustomUserAdmin)
 
 
-class ProfileInline(admin.StackedInline):
-    model = Profile
-    can_delete = False
-    verbose_name_plural = 'Profile'
+admin.site.register(Message)
+admin.site.register(Review)
+admin.site.register(Skill)
+
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):

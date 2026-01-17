@@ -8,6 +8,7 @@ from .models import Project, Proposal, Contract, Message, Review, Skill, Profile
 admin.site.register(Message)
 admin.site.register(Review)
 admin.site.register(Skill)
+admin.site.register(User, CustomUserAdmin)
 
 
 class ProfileInline(admin.StackedInline):

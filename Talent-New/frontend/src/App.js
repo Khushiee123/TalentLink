@@ -1,11 +1,9 @@
-
 import './App.css';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
-
 
 function App() {
   return (
@@ -15,6 +13,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Home />} />
+        {/* Change /admin to /admin-panel to avoid Django conflicts */}
+        {/* Use Home as a test component to see if it renders */}
         <Route path="/admin-panel" element={<Home />} />
       </Routes>
     </BrowserRouter>
